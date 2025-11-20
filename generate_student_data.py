@@ -38,10 +38,10 @@ years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year']
 genders = ['Male', 'Female']
 
 def generate_student_id():
-    """Generate a 9-character student ID in format YYYY-NNNNN"""
-    year = random.randint(2020, 2025)
-    number = random.randint(10000, 99999)
-    return f"{year}-{number}"
+    """Generate a 9-character student ID in format YYNNNNNNN"""
+    year = random.randint(20, 25)  # 2020-2025 becomes 20-25
+    number = random.randint(100000, 999999)  # 6 digits
+    return f"{year}{number}"
 
 def generate_student_data(num_students=350):
     """Generate student data"""
