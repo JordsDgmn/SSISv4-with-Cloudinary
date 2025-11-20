@@ -1,0 +1,205 @@
+{% extends 'layouts.html' %} {% block content %}
+
+<div class="college_container rounded p-3">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>College List</h5>
+        <div class="input-group w-50 align-center">
+          <button
+            type="button"
+            class="btn btn-dark"
+            id="refreshButton"
+            name="refreshButton"
+          >
+            Refresh
+          </button>
+          <input
+            type="text"
+            class="form-control"
+            id="searchInput"
+            placeholder="Search Colleges"
+            value="{{ search_query }}"
+          />
+          <div class="input-group-append">
+            <button class="btn btn-primary" id="searchButton" type="button">
+              Search
+            </button>
+          </div>
+        </div>
+        <div>
+          <button
+            type="button"
+            class="btn btn-success"
+            data-bs-toggle="modal"
+            data-bs-target="#addCollegeModal"
+          >
+            + Add College
+          </button>
+        </div>
+      </div>
+
+      {% if colleges %}
+        <table class="table table-light table-borderless table-hover ">
+          <tr >
+            <th>College Code</th>
+            <th>College</th>
+            <th>Action</th>
+          </tr>
+          {% for college in colleges|reverse %}
+            <tr id="collegeRow">
+              <td>{{ college.code }}</td>
+              <td>{{ college.name }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-primary edit-college"
+                  data-college-code="{{ college.code }}"
+                  data-college-name="{{ college.name }}"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editCollegeModal"
+                >
+                  Edit
+                </button>
+                <a
+                  href="#"
+                  class="btn btn-danger delete-college"
+                  data-college-code="{{ college.code }}"
+                >
+                  Delete
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p>Database Empty. Click "Add College" to add an entry.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+ 
+
+<!-- Add College Form Modal -->
+<div
+  class="modal fade"
+  id="addCollegeModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="addCollegeModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form action="" method="POST">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add College</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="collegeCode">College Code</label>
+            <input
+              type="text"
+              class="form-control"
+              id="collegeCode"
+              name="collegeCode"
+              placeholder="Input College Code"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="collegeName">College</label>
+            <input
+              type="text"
+              class="form-control"
+              id="collegeName"
+              name="collegeName"
+              placeholder="Input College"
+              required
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit College Form Modal -->
+<div
+  class="modal fade"
+  id="editCollegeModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editCollegeModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form id="editCollegeForm" method="POST">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit College</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="editCollegeCode">College Code</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editCollegeCode"
+              name="collegeCode"
+              placeholder="College Code"
+              readonly
+            />
+          </div>
+          <div class="form-group">
+            <label for="editCollegeName">College</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editCollegeName"
+              name="collegeName"
+              placeholder="College Name"
+              required
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button type="submit" class="btn btn-primary" id="editCollegeButton">
+            Save changes
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

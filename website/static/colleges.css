@@ -1,0 +1,87 @@
+/* Content in .college_container */
+.college_container {
+    padding: 20px;
+    background-color: #fff;
+    color: #121212;
+    font-size: 16px;
+    margin: 0 100px;
+}
+
+/* College List Header */
+.college_container h5 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Add College Button */
+.college_container .btn-success {
+    background-color: #462691;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+    margin-right: 10px;
+}
+
+.college_container .btn-outline-danger {
+    background-color: #dc3545;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+}
+.college_container #searchInput {
+    border: 1px solid #d3d3d3;
+}
+.college_container .btn-primary {
+    background-color: #488286;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+}
+
+/* Table Styles */
+.college_container table {
+    width: 100%;
+    border: 1px solid #121212;
+    background-color: #fff;
+    margin: 0;
+}
+
+.college_container table th, .college_container table td {
+    text-align: center;
+    border: 1px solid #121212;
+    padding: 10px;
+}
+
+/* Header Row Styles */
+.college_container table tr:first-child {
+    background-color: #488286;
+    color: #fff;
+}
+
+/* Search Bar Styles */
+.college_container .input-group {
+    margin: 10px 0;
+}
+
+.college_container .form-control {
+    font-size: 16px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.college_container .input-group-append .btn-primary {
+    background-color: #488286;
+    color: #fff;
+    border: none;
+    padding: 0 10px;
+    height: 100%;
+}
+
+.college_container .input-group-append .btn-primary:hover {
+    background-color: #488286;
+}
+

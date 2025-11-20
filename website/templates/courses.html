@@ -1,0 +1,237 @@
+{% extends 'layouts.html' %} {% block content %}
+
+<div class="courses_container rounded p-3">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Course List</h5>
+        <div class="input-group w-50">
+          <button
+            type="button"
+            class="btn btn-dark"
+            id="refreshButtonCourse"
+            name="refreshButtonCourse"
+          >
+            Refresh
+          </button>
+          <input
+            type="text"
+            class="form-control"
+            id="searchInputCourse"
+            placeholder="Search Courses"
+            value="{{ search_query }}"
+          />
+          <div class="input-group-append">
+            <button
+              class="btn btn-primary"
+              id="searchButtonCourse"
+              type="button"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-success"
+          data-bs-toggle="modal"
+          data-bs-target="#addCourseModal"
+        >
+          + Add Course
+        </button>
+      </div>
+
+      {% if courses %}
+        <table class="table table-light table-borderless table-hover">
+          <tr>
+            <th>Course Code</th>
+            <th>Course Name</th>
+            <th>College Code</th>
+            <th>College Name</th>
+            <th>Action</th>
+          </tr>
+          {% for course in courses|reverse %}
+            <tr>
+              <td>{{ course.course_code }}</td>
+              <td>{{ course.course_name }}</td>
+              <td>{{ course.college_code }}</td>
+              <td>{{ course.college_name }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-primary edit-course"
+                  data-course-code="{{ course.course_code }}"
+                  data-course-name="{{ course.course_name }}"
+                  data-college-code="{{ course.college_code }}"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editCourseModal"
+                >
+                  Edit
+                </button>
+                <a
+                  href="#"
+                  class="btn btn-danger delete-course"
+                  data-course-code="{{ course.course_code }}"
+                  >Delete</a
+                >
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p>Database Empty. Click "Add Course" to add an entry.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+<!-- Add Course Form Modal -->
+<div
+  class="modal fade"
+  id="addCourseModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="addCourseModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form action="" method="POST">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Course</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="courseCode">Course Code</label>
+            <input
+              type="text"
+              class="form-control"
+              id="courseCode"
+              name="courseCode"
+              placeholder="Input Course Code"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="courseName">Course Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="courseName"
+              name="courseName"
+              placeholder="Input Course Name"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="collegeCode">College</label>
+            <select
+              class="form-select"
+              id="collegeCode"
+              name="collegeCode"
+              required
+            >
+              <option value="" disabled selected>Select a college</option>
+              {% for college in colleges %}
+              <option value="{{ college.code }}">
+                {{ college.name }} ({{ college.code }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Course Form Modal -->
+<div
+  class="modal fade"
+  id="editCourseModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editCourseModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form id="editCourseForm" method="POST">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Course</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="editCourseCode">Course Code</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editCourseCode"
+              name="courseCode"
+              placeholder="Course Code"
+              readonly
+            />
+          </div>
+          <div class="form-group">
+            <label for="editCourseName">Course Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editCourseName"
+              name="courseName"
+              placeholder="Course Name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="editCollegeCode">College</label>
+            <select class="form-select" id="editCollegeCode" name="collegeCode">
+              {% for college in colleges %}
+              <option value="{{ college.code }}">
+                {{ college.name }} ({{ college.code }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button type="submit" class="btn btn-primary" id="editCourseButton">
+            Save changes
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

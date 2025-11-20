@@ -1,0 +1,6 @@
+---for importing necessary libs---
+
+pip install flask
+pip install flask-mysql-connector
+pip install python-dotenv
+pip install cloudinary

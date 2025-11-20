@@ -1,0 +1,96 @@
+/* Body */
+body {
+ 
+    font-family: 'Roboto', sans-serif; /* Setting the font family */
+    background-color: #77878B; /* Setting the background color */
+    color: #B7D5D4; /* Setting the text color */
+}
+
+/* Navbar */
+/* Navbar */
+.navbar {
+    background-color:#373E40 !important; /* Customizing the navbar background color */
+    border-bottom: 3px solid #488286; /* Adding a bottom border to the navbar */
+    padding: 20px; /* Increasing padding to make the navbar more visible */
+    border-radius: 15px; /* Rounding the edges of the navbar */
+}
+/* Navbar Brand and Links */
+.navbar-brand {
+    background: url('../static/logo.png') no-repeat;
+    background-size: contain;
+    width: 566px;
+    height: 136px;
+    padding: 2px;
+}
+.nav-link {
+    color: #488286; 
+    font-size: 20px; /* Increasing the font size of navbar links */
+    font-family: 'Space Mono', monospace; /* Changing the font to Space Mono */
+    border: 2px solid transparent; /* Adding a transparent border to the nav-links */
+    border-radius: 10px; /* Rounding the edges of the nav-links */
+    padding: 10px; /* Adding padding to the nav-links */
+}
+
+.nav-link:hover {
+    border-color: #488286; /* Adding a visible white border on hover */
+}
+
+/* Navbar Toggler Icon */
+.navbar-toggler-icon {
+    filter: invert(100%); /* Invert the toggler icon to make it white */
+}
+
+/* Navbar Items Container */
+.collapse.navbar-collapse {
+    justify-content: flex-end; /* Right-align navbar items */
+}
+
+/* Navbar Items */
+.navbar-nav {
+    list-style: none;
+    display: flex;
+}
+
+.nav-item {
+    margin: 0 10px; /* Add spacing between items */
+    transition: background-color 0.3s; /* Smooth background color transition */
+}
+
+.nav-item a {
+    text-decoration: none;
+}
+
+/* Active and Hover States */
+.nav-item.active, .nav-item:hover {
+    
+    border-radius: 10px; /* Add rounding to active/hover items */
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    background-color: #121212; /* Dark background color for the dropdown */
+}
+
+/* Dropdown Item */
+.dropdown-item {
+    color: #488286; /* Text color for dropdown items */
+}
+
+/* Dropdown Item Hover Effect */
+.dropdown-item:hover {
+    background-color: #488286; /* Darker background for dropdown items on hover */
+}
+
+#message {
+    position: fixed;
+    top: 20px; /* Adjust the top position as needed */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 25vw; /* Adjust the width as needed */
+    z-index: 2000;
+}
+
+#inner-message {
+    margin: 0 auto;
+    text-align: center;
+}

@@ -1,0 +1,323 @@
+{% extends 'layouts.html' %}
+
+{% block content %}
+
+<div class="student_container rounded p-3">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Student List</h5>
+        <div class="input-group w-50">
+          <button type="button" class="btn btn-black" id="refreshButtonStudent" name="refreshButtonStudent">Refresh</button>
+          <input type="text" class="form-control" id="searchInputStudents" placeholder="Search Students" value="{{ search_query }}">
+          <div class="input-group-append">
+            <button class="btn btn-primary" id="searchButtonStudents" type="button">Search</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStudentModal"> + Add Student Data</button>
+      </div>
+
+        {% if students %}
+  <table class="table table-light table-borderless table-hover">
+      <tr>
+          <th>Picture</th>
+          <th>ID</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Course</th>
+          <th>College</th>
+          <th>Year</th>
+          <th>Gender</th>
+          
+          <th>Action</th>
+          
+      </tr>
+      {% for student in students %}
+      <tr>
+        <td>
+          {% if student.profile_pic_url %}
+              <img src="{{ student.profile_pic_url }}" alt="Profile Picture" width="64" height="64" style = "border-radius: 50%;">
+          {% else %}
+              <img src="static/default-prof.png" alt="Default Profile Picture" width="64" height="64" style = "border-radius: 50%;">
+          {% endif %}
+        </td>
+          <td>{{ student.id }}</td>
+          <td>{{ student.firstname }}</td>
+          <td>{{ student.lastname }}</td>
+          <td>
+              {{ student.course_name }} ({{ student.course_code }})
+          </td>
+          <td>
+              {{ student.college_name }} ({{ student.college_code }})
+          </td>
+          <td>{{ student.year }}</td>
+          <td>{{ student.gender }}</td>
+         
+        
+        
+          <td>
+              <button type="button" class="btn btn-primary edit-student"
+                  data-student-id="{{ student.id }}"
+                  data-first-name="{{ student.firstname }}"
+                  data-last-name="{{ student.lastname }}"
+                  data-course-code="{{ student.course_code }}"
+                  data-college-name="{{ student.college_name }}"
+                  data-year="{{ student.year }}"
+                  data-gender="{{ student.gender }}"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editStudentModal">
+                  Edit
+              </button>
+              <a href="#" class="btn btn-danger delete-student" data-student-id="{{ student.id }}">Delete</a>
+              <button type="button" class="btn btn-dark view-student" 
+              data-student-id-prof="{{ student.id }}"
+              data-first-name-prof="{{ student.firstname }}"
+              data-last-name-prof="{{ student.lastname }}"
+              data-course-code-prof="{{ student.course_name}} ({{ student.course_code }})"
+              data-college-name-prof="{{ student.college_name }} ({{ student.college_code }})"
+              data-year-prof="{{ student.year }}"
+              data-gender-prof="{{ student.gender }}" 
+              data-profile-pic-prof="{{ student.profile_pic_url }}"
+              data-bs-toggle="modal" 
+              data-bs-target="#studentProfileModal">
+              View
+              </button>
+          </td>
+      </tr>
+      {% endfor %}
+  </table>
+  {% else %}
+  <p>Database Empty. Click "Add Student Data" to add an entry.</p>
+  {% endif %}
+
+      
+      <div class="row justify-content-end">
+        <div class="col-auto">
+          <nav aria-label="Page navigation" class="student-pagination">
+            <ul class="pagination">
+              <li class="page-item {% if not has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('students.students', page_number=page_number - 1) }}">Previous</a>
+              </li>
+              <li class="page-item {% if not has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('students.students', page_number=page_number + 1) }}">Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- Add Student Form Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" role="dialog" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <form action="/students" method="POST" enctype="multipart/form-data"> 
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Student Data</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="studentID">ID</label>
+            <input type="text" class="form-control" id="studentID" name="studentID" placeholder="Student ID" required>
+          </div>
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" class="form-control" id="firstName" name="firstName" placeholder="First Name" required>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Last Name" required>
+          </div>
+          <div class="form-group">
+            <label for="course">Course</label>
+            <select class="form-select" id="course" name="courseCode" required>  <!-- Updated name attribute -->
+              <option value="" disabled selected>Select a course</option>
+              {% for course in courses %}
+              <option value="{{ course.course_code }}">{{ course.course_name }} ({{ course.course_code }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="year">Year</label>
+            <input type="text" class="form-control" id="year" name="year" placeholder="Year" required>
+          </div>
+          <div class="form-group">
+            <label for="gender">Gender</label>
+            <select class="form-select" id="gender" name="gender" required>
+              <option value="" disabled selected>Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Nonbinary">Nonbinary</option>
+            
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="formFile" class="form-label">Upload Picture</label>
+            <input class="form-control" type="file" id="formFile" name = "file" accept="image/*">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary saveChanges" id = "saveChanges">Save changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Update the Edit Student Form Modal to match student information -->
+<div class="modal fade" id="editStudentModal" tabindex="-1" role="dialog" aria-labelledby="editStudentModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <form id="editStudentForm" method="POST">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Student Data</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="editStudentID">ID</label>
+            <input type="text" class="form-control" id="editStudentID" name="studentID" placeholder="Student ID" readonly>
+          </div>
+          <div class="form-group">
+            <label for="editFirstName">First Name</label>
+            <input type="text" class="form-control" id="editFirstName" name="firstName" placeholder="First Name" >
+          </div>
+          <div class="form-group">
+            <label for="editLastName">Last Name</label>
+            <input type="text" class="form-control" id="editLastName" name="lastName" placeholder="Last Name">
+          </div>
+          <div class="form-group">
+            <label for="editCourseCode">Course</label>
+            <select class="form-select" id="editCourseCode" name="courseCode"> <!-- Updated name attribute -->
+              {% for course in courses %}
+              <option value="{{ course.course_code }}">{{ course.course_name }} ({{ course.course_code }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editYear">Year</label>
+            <input type="text" class="form-control" id="editYear" name="year" placeholder="Year">
+          </div>
+          <div class="form-group">
+            <label for="editGender">Gender</label>
+            <select class="form-select" id="editGender" name="gender" required>
+              <option value="" disabled>Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Nonbinary">Nonbinary</option> <!-- Use a unique value for nonbinary -->
+            </select>
+          </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary" id="editStudentButton">Save changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="studentProfileModal" tabindex="-1" aria-labelledby="studentProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+          <div class="modal-header studentProfile">
+              <h2 class="modal-title text-black fw-bold fs-4" id="studentProfileModalLabel" style="font-family: 'Roboto', sans-serif;">Student Profile</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body studentProfile">
+              <div class="container-xl px-4 mt-4">
+                  <!-- Account page navigation-->
+                  <nav class="nav nav-borders">
+
+                  </nav>
+                  <hr class="mt-0 mb-4">
+                  <div class="row">
+                      <div class="col-xl-4">
+                          <!-- Profile picture card-->
+                          <div class="card mb-4 mb-xl-0">
+                              <div class="card-header">Profile Picture</div>
+                              <div class="card-body text-center">
+                                <!-- Profile picture image-->
+                                {% for student in students %}
+                                <img class="img-account-profile rounded-circle mb-2" src="{{ student.profile_pic_url }}" id="img-source_{{ student.id }}" style="max-width: 100%; max-height: 100%;">
+                                <label for="profilePicture_{{ student.id }}" class="btn btn-dark profileUploadBtn btn-488286" style="display: none;">
+                                    Upload Profile Picture
+                                </label>
+                                <input type="file" id="profilePicture_{{ student.id }}" style="display: none;" name="profilePicture_{{ student.id }}" data-student-id-prof="{{ student.id }}" class="profilePictureInput">
+                               
+                              {% endfor %}
+                               
+                              <div class="small font-italic text-muted mb-4">JPG or PNG no larger than 5 MB</div>
+                              
+                            </div>
+                            
+                          </div>
+                      </div>
+                      <div class="col-xl-8">
+                          <!-- Account details card-->
+                          <div class="card mb-4">
+                              <div class="card-header">Student Information</div>
+                              <div class="card-body">
+                                  <form>
+                                      <!-- Form Group (ID)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputID">ID</label>
+                                          <input class="form-control" id="inputID" type="text" placeholder="Enter ID" readonly>
+                                      </div>
+                                      <!-- Form Group (First Name)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputFirstName">First Name</label>
+                                          <input class="form-control" id="inputFirstName" type="text" placeholder="Enter First Name" readonly>
+                                      </div>
+                                      <!-- Form Group (Last Name)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputLastName">Last Name</label>
+                                          <input class="form-control" id="inputLastName" type="text" placeholder="Enter Last Name" readonly>
+                                      </div>
+                                      <!-- Form Group (Course)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputCourse">Course</label>
+                                          <input class="form-control" id="inputCourse" type="text" placeholder="Enter Course" readonly>
+                                      </div>
+                                      <!-- Form Group (College)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputCollege">College</label>
+                                          <input class="form-control" id="inputCollege" type="text" placeholder="Enter College" readonly>
+                                      </div>
+                                      <!-- Form Group (Year)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputYear">Year</label>
+                                          <input class="form-control" id="inputYear" type="text" placeholder="Enter Year" readonly>
+                                      </div>
+                                      <!-- Form Group (Gender)-->
+                                      <div class="mb-3">
+                                          <label class="small mb-1" for="inputGender">Gender</label>
+                                          <input class="form-control" id="inputGender" type="text" placeholder="Enter Gender" readonly>
+                                      </div>
+                                  </form>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <!-- <button type="button" class="btn btn-primary">Save Changes</button> -->
+          </div>
+      </div>
+  </div>
+</div>
+
+{% endblock %}
+

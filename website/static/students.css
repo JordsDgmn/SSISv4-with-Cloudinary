@@ -1,0 +1,129 @@
+/* Content in .student_container */
+.student_container {
+    padding: 20px;
+    background-color: #fff;
+    color: #121212;
+    font-size: 16px;
+    margin: 0 100px;
+}
+
+/* Student List Header */
+.student_container h5 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Add Student Button */
+.student_container .btn-success {
+    background-color: #462691;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+    margin-right: 10px;
+}
+
+.student_container .btn-outline-danger{
+    background-color: #dc3545;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+}
+
+.student_container .btn-primary {
+    background-color: #462691;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+}
+
+/* Table Styles */
+.student_container table {
+    width: 100%;
+    border: 1px solid #121212;
+    background-color: #fff;
+    margin: 0;
+}
+.student_container .btn-dark {
+    background-color: #488286;
+    padding: 5px 10px;
+}
+
+.student_container .btn-black {
+    background-color: #000;
+    padding: 5px 10px;
+    color: #fff;
+}
+
+.student_container table th, .student_container table td {
+    text-align: center;
+    border: 1px solid #121212;
+    padding: 10px 5px 10px 5px;
+}
+
+/* Header Row Styles */
+.student_container table tr:first-child {
+    background-color: #343A40;
+    color: #fff;
+}
+
+/* Search Bar Styles */
+.student_container .input-group {
+    margin: 10px 0;
+}
+
+.student_container .form-control {
+    font-size: 16px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.student_container .input-group-append .btn-primary {
+    background-color: #488286;
+    color: #fff;
+    border: none;
+    padding: 0 10px;
+    height: 100%;
+}
+
+.student_container .input-group-append .btn-primary:hover {
+    background-color: #488286;
+}
+
+/* Pagination Styles */
+.student-pagination .page-item.disabled .page-link {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    pointer-events: none;
+    border: 1px solid #ccc; /* Add a border to the disabled link */
+}
+
+.student-pagination .page-link {
+    color: #488286;
+    background-color: #fff;
+    border: 1px solid #ccc; /* Add a border to the active links */
+}
+
+.student-pagination .page-link:hover {
+    color: #488286;
+    background-color: #e0e0e0; /* Change the background on hover for active links */
+    border: 1px solid #488286; /* Highlight the border on hover */
+}
+
+
+
+.student_container .input-group-append .btn-dark {
+    background-color: #488286;
+    color: #fff;
+    border: none;
+    padding: 0 10px;
+    height: 100%;
+}
+
+.student_container .input-group-append .btn-dark:hover {
+    background-color: #488286;
+}
+
