@@ -99,7 +99,7 @@ def add_student():
     print(f"{'='*80}")
     
     try:
-        id = request.form.get("studentID")
+        # Remove ID from form - it's auto-generated now
         firstname = request.form.get("firstName")
         lastname = request.form.get("lastName")
         program_code = request.form.get("programCode")
@@ -107,38 +107,34 @@ def add_student():
         gender = request.form.get("gender")
         
         print(f"📊 Form data received:")
-        print(f"  Student ID: {id}")
         print(f"  Name: {firstname} {lastname}")
         print(f"  Program: {program_code}")
         print(f"  Year: {year}")
         print(f"  Gender: {gender}")
         
-        if not all([id, firstname, lastname, program_code, year, gender]):
+        if not all([firstname, lastname, program_code, year, gender]):
             print(f"❌ ERROR: Missing required fields")
             flash('All fields are required', 'danger')
             return None
         
-        print(f"\n➕ Creating student in database...")
-        result = student_model.create_student(id, firstname, lastname, program_code, year, gender)
+        print(f"\n➕ Creating student in database with auto-generated ID...")
+        result = student_model.create_student(firstname, lastname, program_code, year, gender)
         print(f"📊 Create result: {result}")
         
         # Check if creation was successful
-        if "success" in result.lower():
+        if result.get('success'):
+            student_id = result.get('student_id')
             # Log the creation
-            log_activity("CREATE Student", f"ID={id}, Name={firstname} {lastname}, Program={program_code}, Year={year}, Gender={gender}")
+            log_activity("CREATE Student", f"ID={student_id}, Name={firstname} {lastname}, Program={program_code}, Year={year}, Gender={gender}")
             print(f"📝 Activity logged")
-            flash('Student created successfully', 'success')
-            print(f"✅ SUCCESS: Student {id} created")
+            flash(f'Student created successfully with ID: {student_id}', 'success')
+            print(f"✅ SUCCESS: Student {student_id} created")
             print(f"{'='*80}\n")
-            return id
+            return student_id
         else:
-            # Handle error (including duplicate key)
-            if "already exists" in result.lower() or "duplicate" in result.lower():
-                flash(f'Error: Student with ID "{id}" already exists', 'danger')
-                print(f"❌ ERROR: Duplicate student ID {id}")
-            else:
-                flash(f'Error creating student: {result}', 'danger')
-                print(f"❌ ERROR: {result}")
+            error_msg = result.get('message', 'Unknown error')
+            flash(f'Error creating student: {error_msg}', 'danger')
+            print(f"❌ ERROR: {error_msg}")
             print(f"{'='*80}\n")
             return None
         

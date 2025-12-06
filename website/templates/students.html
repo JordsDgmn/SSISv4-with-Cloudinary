@@ -151,15 +151,15 @@
       </div>
       <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
         <div class="modal-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="studentID" class="form-label">Student ID</label>
-                <input type="text" class="form-control" id="studentID" name="studentID" 
-                       placeholder="e.g., 202312345" pattern="[0-9]{9}" maxlength="9" required>
-                <div class="invalid-feedback">Please enter a valid 9-digit student ID.</div>
-              </div>
+          <!-- Info Alert: Student ID Auto-Generated -->
+          <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <div>
+              <strong>Student ID will be auto-generated</strong> in format <code>YYYY-XXXX</code> (e.g., 2025-0001)
             </div>
+          </div>
+          
+          <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="firstName" class="form-label">First Name</label>
@@ -168,9 +168,6 @@
                 <div class="invalid-feedback">Please enter a first name.</div>
               </div>
             </div>
-          </div>
-          
-          <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="lastName" class="form-label">Last Name</label>
@@ -179,6 +176,9 @@
                 <div class="invalid-feedback">Please enter a last name.</div>
               </div>
             </div>
+          </div>
+          
+          <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="programCode" class="form-label">Program</label>

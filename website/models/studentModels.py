@@ -1,17 +1,67 @@
 from website.database import DatabaseManager
+from datetime import datetime
 
 class StudentModel:
     @classmethod
-    def create_student(cls, id, firstname, lastname, program_code, year, gender):
+    def generate_next_student_id(cls, year=None):
+        """Generate next student ID in YYYY-XXXX format using database function"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
-                cur.execute(
-                    "INSERT INTO student (id, firstname, lastname, program_code, year, gender) VALUES (%s, %s, %s, %s, %s, %s)",
-                    (id, firstname, lastname, program_code, year, gender)
-                )
-            return "Student created successfully"
+                if year is None:
+                    year = datetime.now().year
+                
+                # Call PostgreSQL function
+                cur.execute("SELECT generate_student_id(%s) as next_id", (year,))
+                result = cur.fetchone()
+                return result['next_id']
         except Exception as e:
-            return f"Failed to create student: {str(e)}"
+            print(f"Error generating student ID: {e}")
+            # Fallback: generate manually
+            return cls._generate_id_fallback(year)
+    
+    @classmethod
+    def _generate_id_fallback(cls, year=None):
+        """Fallback method if database function fails"""
+        if year is None:
+            year = datetime.now().year
+        
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT id FROM student 
+                    WHERE id LIKE %s 
+                    ORDER BY id DESC LIMIT 1
+                """, (f"{year}-%",))
+                
+                result = cur.fetchone()
+                if result:
+                    last_id = result['id']
+                    last_num = int(last_id.split('-')[1])
+                    next_num = last_num + 1
+                else:
+                    next_num = 1
+                
+                return f"{year}-{next_num:04d}"
+        except Exception as e:
+            print(f"Error in fallback ID generation: {e}")
+            return f"{year}-0001"
+    
+    @classmethod
+    def create_student(cls, firstname, lastname, program_code, year, gender, profile_pic_url=None):
+        """Create student with auto-generated ID"""
+        try:
+            # Generate next ID
+            student_id = cls.generate_next_student_id()
+            print(f"Generated student ID: {student_id}")
+            
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute(
+                    "INSERT INTO student (id, firstname, lastname, program_code, year, gender, profile_pic_url) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (student_id, firstname, lastname, program_code, year, gender, profile_pic_url)
+                )
+            return {"success": True, "message": "Student created successfully", "student_id": student_id}
+        except Exception as e:
+            return {"success": False, "message": f"Failed to create student: {str(e)}"}
 
     @classmethod
     def get_all_students(cls):
