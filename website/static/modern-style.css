@@ -643,6 +643,20 @@ html:not([data-theme="dark"]) body::before {
   color: white;
 }
 
+/* Program Code Badge - Inverted theme colors */
+.badge-program-code {
+  background: #0f172a;
+  color: #ffffff !important;
+  border: 1px solid #334155;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .badge-program-code {
+  background: #ffffff;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0;
+}
+
 /* ===================================
    Flash Messages
    =================================== */

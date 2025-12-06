@@ -81,7 +81,7 @@
             {% for program in programs %}
             <tr>
               <td>
-                <span class="fw-bold font-monospace">{{ program.program_code }}</span>
+                <span class="badge badge-program-code">{{ program.program_code }}</span>
               </td>
               <td>
                 <div class="fw-semibold">{{ program.program_name }}</div>
@@ -145,7 +145,7 @@
         {% if program_students %}
         <div class="mb-4">
           <h6 class="mb-3">
-            <span class="badge bg-primary">{{ program.program_code }}</span>
+            <span class="badge badge-program-code">{{ program.program_code }}</span>
             {{ program.program_name }}
             <span class="text-muted">({{ program_students|length }} students)</span>
           </h6>
