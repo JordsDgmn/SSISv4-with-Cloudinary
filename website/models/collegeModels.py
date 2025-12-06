@@ -50,3 +50,32 @@ class CollegeModel:
                 return [dict(row) for row in colleges]
         except Exception as e:
             return []
+
+    @classmethod
+    def get_college_with_details(cls, college_code):
+        """Get a single college by code"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("SELECT code, name FROM college WHERE code = %s", (college_code,))
+                result = cur.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            print(f"Failed to retrieve college: {str(e)}")
+            return None
+
+    @classmethod
+    def get_college_programs(cls, college_code):
+        """Get all programs under a specific college"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT code AS program_code, name AS program_name, college_code
+                    FROM program
+                    WHERE college_code = %s
+                    ORDER BY code
+                """, (college_code,))
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+        except Exception as e:
+            print(f"Failed to retrieve college programs: {str(e)}")
+            return []

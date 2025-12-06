@@ -1,0 +1,182 @@
+{% extends "layouts.html" %}
+
+{% block title %}View Program - SSIS v4{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="bi bi-book me-3 text-primary"></i>Program Details
+      </h1>
+      <p class="mb-0 text-muted">View program information and enrolled students</p>
+    </div>
+    <a href="/programs" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Back to Programs
+    </a>
+  </div>
+
+  <!-- Program Info Card -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-info-circle me-2"></i>Program Information
+      </h5>
+      <div class="btn-group" role="group">
+        <button type="button" 
+                class="btn btn-outline-primary btn-sm edit-program" 
+                data-bs-toggle="modal" 
+                data-bs-target="#editProgramModal"
+                data-program-code="{{ program.program_code }}"
+                data-program-name="{{ program.program_name }}"
+                data-college-code="{{ program.college_code }}">
+          <i class="bi bi-pencil me-1"></i>Edit Program
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="text-muted small">Program Code</label>
+          <p class="fw-bold font-monospace">{{ program.program_code }}</p>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="text-muted small">Program Name</label>
+          <p class="fw-semibold">{{ program.program_name }}</p>
+        </div>
+        <div class="col-md-6 mb-0">
+          <label class="text-muted small">College</label>
+          <p class="fw-semibold">
+            {{ program.college_name }}
+            <span class="text-muted">({{ program.college_code }})</span>
+          </p>
+        </div>
+        <div class="col-md-6 mb-0">
+          <label class="text-muted small">Total Students</label>
+          <p><span class="badge bg-primary" style="font-size: 1rem;">{{ students|length }} students</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enrolled Students Card -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2"></i>Enrolled Students
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      {% if students %}
+      <div class="table-responsive">
+        <table id="programStudentsTable" class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th width="60">Photo</th>
+              <th>Student ID</th>
+              <th>Name</th>
+              <th>Year</th>
+              <th>Gender</th>
+              <th width="150">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+            <tr>
+              <td>
+                <div class="profile-pic-container">
+                  {% if student.profile_pic_url %}
+                    <img src="{{ student.profile_pic_url }}" alt="Profile" class="profile-pic">
+                  {% else %}
+                    <i class="bi bi-person profile-placeholder"></i>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <span class="fw-bold font-monospace">{{ student.id }}</span>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ student.firstname }} {{ student.lastname }}</div>
+              </td>
+              <td>
+                <span class="badge year-badge">{{ student.year }}</span>
+              </td>
+              <td>
+                <span class="badge gender-badge-{{ student.gender.lower() }}">
+                  <i class="bi bi-{{ 'person-standing' if student.gender == 'Male' else 'person-standing-dress' }} me-1"></i>
+                  {{ student.gender }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="/students/view/{{ student.id}}" 
+                     class="btn btn-outline-info btn-sm" 
+                     title="View Details">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <button type="button"
+                          class="btn btn-outline-primary btn-sm edit-student" 
+                          title="Edit Student"
+                          data-bs-toggle="modal" 
+                          data-bs-target="#editStudentModal"
+                          data-student-id="{{ student.id }}"
+                          data-first-name="{{ student.firstname }}"
+                          data-last-name="{{ student.lastname }}"
+                          data-program-code="{{ student.program_code }}"
+                          data-year="{{ student.year }}"
+                          data-gender="{{ student.gender }}">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <a href="javascript:void(0)" 
+                     class="btn btn-outline-danger btn-sm delete-student" 
+                     title="Delete Student" 
+                     data-student-id="{{ student.id }}"
+                     data-student-name="{{ student.firstname }} {{ student.lastname }}">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-people display-1 text-muted"></i>
+        <h4 class="mt-3 text-muted">No Students Enrolled</h4>
+        <p class="text-muted">This program currently has no students enrolled.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+  // Initialize DataTable
+  if ($('#programStudentsTable').length) {
+    $('#programStudentsTable').DataTable({
+      order: [[1, 'asc']], // Sort by Student ID
+      pageLength: 25,
+      columnDefs: [
+        { orderable: false, targets: [0, -1] }, // Disable sorting on Photo and Actions
+      ]
+    });
+  }
+
+  // Delete handler
+  $(document).on('click', '.delete-student', function(e) {
+    e.preventDefault();
+    const studentId = $(this).data('student-id');
+    const studentName = $(this).data('student-name');
+    
+    if (confirm(`Are you sure you want to delete ${studentName} (ID: ${studentId})?\n\nThis action cannot be undone.`)) {
+      window.location.href = `/students/delete/${studentId}`;
+    }
+  });
+});
+</script>
+
+{% endblock %}

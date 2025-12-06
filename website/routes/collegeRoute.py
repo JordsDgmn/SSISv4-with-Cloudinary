@@ -196,3 +196,33 @@ def edit_college(college_code):
         traceback.print_exc()
         print(f"{'='*80}\n")
         return jsonify({'success': False, 'message': f'Error updating college: {str(e)}'})
+
+
+@collegeRoute.route("/colleges/view/<string:college_code>", methods=["GET"])
+def view_college(college_code):
+    # Get college details
+    college = college_model.get_college_with_details(college_code)
+    
+    if not college:
+        flash(f'College with code "{college_code}" not found', 'danger')
+        return redirect(url_for('college.colleges'))
+    
+    # Get all programs under this college
+    programs = college_model.get_college_programs(college_code)
+    
+    # Get all students in this college (across all programs)
+    students = student_model.get_students_by_college(college_code)
+    
+    # Group students by program for display
+    students_by_program = {}
+    for student in students:
+        prog_code = student['program_code']
+        if prog_code not in students_by_program:
+            students_by_program[prog_code] = []
+        students_by_program[prog_code].append(student)
+    
+    # Log the view
+    log_activity("VIEW College", f"Code={college_code}, Name={college['name']}, Programs={len(programs)}, Students={len(students)}")
+    
+    return render_template('college_view.html', college=college, programs=programs, students_by_program=students_by_program)
+

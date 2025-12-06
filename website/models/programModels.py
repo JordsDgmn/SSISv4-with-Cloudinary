@@ -63,3 +63,21 @@ class ProgramModel:
                 return [dict(row) for row in programs]
         except Exception as e:
             return []
+
+    @classmethod
+    def get_program_with_details(cls, program_code):
+        """Get a single program with college details"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT program.code AS program_code, program.name AS program_name,
+                           college.code AS college_code, college.name AS college_name
+                    FROM program
+                    INNER JOIN college ON program.college_code = college.code
+                    WHERE program.code = %s
+                """, (program_code,))
+                result = cur.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            print(f"Failed to retrieve program: {str(e)}")
+            return None

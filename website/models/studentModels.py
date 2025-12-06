@@ -167,3 +167,71 @@ class StudentModel:
                 return result['profile_pic_url'] if result else None
         except Exception as e:
             return None
+
+    @classmethod
+    def get_students_by_program(cls, program_code):
+        """Get all students enrolled in a specific program"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT student.id, student.firstname, student.lastname,
+                        student.program_code, student.year, student.gender,
+                        student.profile_pic_url,
+                        program.name AS program_name, program.code AS program_code,
+                        college.name AS college_name, college.code AS college_code
+                    FROM student
+                    INNER JOIN program ON student.program_code = program.code
+                    INNER JOIN college ON program.college_code = college.code
+                    WHERE student.program_code = %s
+                    ORDER BY student.id ASC
+                """, (program_code,))
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+        except Exception as e:
+            print(f"Failed to retrieve students by program: {str(e)}")
+            return []
+
+    @classmethod
+    def get_students_by_college(cls, college_code):
+        """Get all students in programs under a specific college"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT student.id, student.firstname, student.lastname,
+                        student.program_code, student.year, student.gender,
+                        student.profile_pic_url,
+                        program.name AS program_name, program.code AS program_code,
+                        college.name AS college_name, college.code AS college_code
+                    FROM student
+                    INNER JOIN program ON student.program_code = program.code
+                    INNER JOIN college ON program.college_code = college.code
+                    WHERE college.code = %s
+                    ORDER BY program.code ASC, student.id ASC
+                """, (college_code,))
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+        except Exception as e:
+            print(f"Failed to retrieve students by college: {str(e)}")
+            return []
+
+    @classmethod
+    def get_student_with_details(cls, student_id):
+        """Get a single student with full program and college details"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT student.id, student.firstname, student.lastname,
+                        student.program_code, student.year, student.gender,
+                        student.profile_pic_url,
+                        program.name AS program_name, program.code AS program_code,
+                        college.name AS college_name, college.code AS college_code
+                    FROM student
+                    INNER JOIN program ON student.program_code = program.code
+                    INNER JOIN college ON program.college_code = college.code
+                    WHERE student.id = %s
+                """, (student_id,))
+                result = cur.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            print(f"Failed to retrieve student with details: {str(e)}")
+            return None

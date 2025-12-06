@@ -163,11 +163,17 @@ def add_student():
 
 @studentRoute.route("/students/view/<string:student_id>", methods=["GET"])
 def view_student(student_id):
-    # Log the view
-    log_activity("VIEW Student", f"ID={student_id}")
+    # Get student with full details
+    student = student_model.get_student_with_details(student_id)
     
-    flash('Student details viewed', 'info')
-    return redirect(url_for('students.students'))
+    if not student:
+        flash(f'Student with ID "{student_id}" not found', 'danger')
+        return redirect(url_for('students.students'))
+    
+    # Log the view
+    log_activity("VIEW Student", f"ID={student_id}, Name={student['firstname']} {student['lastname']}")
+    
+    return render_template('student_view.html', student=student)
 
 
 @studentRoute.route("/students/delete/<string:student_id>", methods=["GET", "POST", "DELETE"])

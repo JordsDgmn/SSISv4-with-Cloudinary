@@ -58,6 +58,7 @@
               <th>Program Name</th>
               <th>College Code</th>
               <th>College Name</th>
+              <th>Students</th>
               <th width="150">Actions</th>
             </tr>
           </thead>
@@ -77,6 +78,10 @@
               </td>
               <td>
                 <small class="text-muted">{{ program.college_name }}</small>
+              </td>
+              <td>
+                {% set student_count = students|selectattr('program_code', 'equalto', program.program_code)|list|length if students else 0 %}
+                <span class="badge bg-outline-info">{{ student_count }} students</span>
               </td>
               <td class="text-center">
                 <div class="btn-group" role="group">

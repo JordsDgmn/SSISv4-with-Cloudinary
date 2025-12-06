@@ -84,7 +84,7 @@
                     <span class="badge bg-outline-secondary">{{ program_count }} programs</span>
                   </td>
                   <td>
-                    {% set student_count = students|selectattr('college', 'equalto', college.code)|list|length if students else 0 %}
+                    {% set student_count = students|selectattr('college_code', 'equalto', college.code)|list|length if students else 0 %}
                     <span class="badge bg-outline-info">{{ student_count }} students</span>
                   </td>
                   <td class="text-center">

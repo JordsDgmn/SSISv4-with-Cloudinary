@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash
 from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
+from website.models.studentModels import StudentModel
 import os
 from datetime import datetime
 
@@ -19,6 +20,7 @@ def log_activity(action, details):
 programRoute = Blueprint('programs', __name__)
 program_model = ProgramModel()
 college_model = CollegeModel()
+student_model = StudentModel()
 
 @programRoute.route("/programs", methods=["GET", "POST"])
 def programs():
@@ -78,8 +80,10 @@ def programs():
 
     programs = program_model.search_programs(search_query) if search_query else program_model.get_programs()
     colleges = college_model.get_colleges()
+    students_data = student_model.get_students(page_size=999999, page_number=1)
+    students = students_data.get("results", []) if isinstance(students_data, dict) else []
 
-    return render_template("programs.html", programs=programs, colleges=colleges, search_query=search_query)
+    return render_template("programs.html", programs=programs, colleges=colleges, students=students, search_query=search_query)
 
 
 @programRoute.route("/programs/edit/<string:program_code>", methods=["POST"])
@@ -201,3 +205,21 @@ def delete_program(program_code):
         print(f"{'='*80}\n")
         flash(f'Error deleting program: {str(e)}', 'danger')
         return redirect(url_for('programs.programs'))
+
+
+@programRoute.route("/programs/view/<string:program_code>", methods=["GET"])
+def view_program(program_code):
+    # Get program with details
+    program = program_model.get_program_with_details(program_code)
+    
+    if not program:
+        flash(f'Program with code "{program_code}" not found', 'danger')
+        return redirect(url_for('programs.programs'))
+    
+    # Get all students enrolled in this program
+    students = student_model.get_students_by_program(program_code)
+    
+    # Log the view
+    log_activity("VIEW Program", f"Code={program_code}, Name={program['program_name']}, Students={len(students)}")
+    
+    return render_template('program_view.html', program=program, students=students)

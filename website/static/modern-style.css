@@ -412,25 +412,38 @@ html:not([data-theme="dark"]) body::before {
 }
 
 .dataTables_paginate .paginate_button {
-  padding: 0.375rem 0.75rem !important;
-  margin: 0 0.125rem;
+  padding: 0.5rem 0.875rem !important;
+  margin: 0 0.25rem;
   border-radius: var(--border-radius) !important;
-  border: 1px solid var(--border-color) !important;
-  background: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-  transition: all 0.3s ease;
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 
 .dataTables_paginate .paginate_button:hover {
-  background: var(--primary) !important;
-  color: white !important;
-  border-color: var(--primary) !important;
+  background: var(--gray-100) !important;
+  color: var(--text-primary) !important;
+  border: none !important;
 }
 
-.dataTables_paginate .paginate_button.current {
+.dataTables_paginate .paginate_button.current,
+.dataTables_paginate .paginate_button.current:hover {
   background: var(--primary) !important;
   color: white !important;
-  border-color: var(--primary) !important;
+  border: none !important;
+  font-weight: 600;
+}
+
+.dataTables_paginate .paginate_button.disabled,
+.dataTables_paginate .paginate_button.disabled:hover {
+  background: transparent !important;
+  color: var(--gray-400) !important;
+  border: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.4;
 }
 
 /* ===================================
