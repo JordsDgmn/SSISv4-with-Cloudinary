@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS college (
     name VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS course (
+CREATE TABLE IF NOT EXISTS program (
     code VARCHAR(10) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     college_code VARCHAR(10) NOT NULL,
@@ -21,11 +21,11 @@ CREATE TABLE IF NOT EXISTS student (
     id CHAR(9) PRIMARY KEY,
     firstname VARCHAR(20) NOT NULL,
     lastname VARCHAR(20) NOT NULL,
-    course_code VARCHAR(10) NOT NULL,
+    program_code VARCHAR(10) NOT NULL,
     year VARCHAR(20) NOT NULL,
     gender VARCHAR(10) NOT NULL,
     profile_pic_url VARCHAR(255),
-    FOREIGN KEY (course_code) REFERENCES course(code) ON DELETE CASCADE
+    FOREIGN KEY (program_code) REFERENCES program(code) ON DELETE CASCADE
 );
 
 -- Insert sample data for colleges

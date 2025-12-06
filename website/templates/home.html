@@ -1,0 +1,162 @@
+{% extends "layouts.html" %}
+
+{% block title %}Home - SSIS v4{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Hero Section -->
+  <div class="hero-section text-center py-5 mb-5">
+    <h1 class="display-3 fw-bold mb-3">Student Information System</h1>
+    <p class="lead mb-0">Manage students, academic programs, and college information efficiently</p>
+    <small class="d-block mt-2 opacity-75">Version 4.0</small>
+  </div>
+
+  <!-- Navigation Cards -->
+  <div class="row g-4 mb-5">
+    <!-- Students Card -->
+    <div class="col-md-4">
+      <a href="/students" class="text-decoration-none">
+        <div class="card h-100 border-0 shadow-sm hover-lift home-card">
+          <div class="card-body text-center p-5">
+            <div class="mb-4">
+              <i class="bi bi-people display-1 text-primary"></i>
+            </div>
+            <h3 class="fw-bold mb-3 card-title-text">Students</h3>
+            <p class="card-description mb-4">
+              Manage student records including personal information, program enrollment, and profile photos.
+            </p>
+            <div class="d-flex justify-content-around text-center mb-3">
+              <div>
+                <h4 class="fw-bold text-primary mb-0">{{ total_students }}</h4>
+                <small class="text-muted">Total</small>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-lg w-100">
+              <i class="bi bi-arrow-right-circle me-2"></i>View Students
+            </button>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Programs/programs Card -->
+    <div class="col-md-4">
+      <a href="/programs" class="text-decoration-none">
+        <div class="card h-100 border-0 shadow-sm hover-lift home-card">
+          <div class="card-body text-center p-5">
+            <div class="mb-4">
+              <i class="bi bi-book display-1 text-success"></i>
+            </div>
+            <h3 class="fw-bold mb-3 card-title-text">Programs</h3>
+            <p class="card-description mb-4">
+              Manage academic programs offered by different colleges in the institution.
+            </p>
+            <div class="d-flex justify-content-around text-center mb-3">
+              <div>
+                <h4 class="fw-bold text-success mb-0">{{ total_programs }}</h4>
+                <small class="text-muted">Total</small>
+              </div>
+            </div>
+            <button class="btn btn-success btn-lg w-100">
+              <i class="bi bi-arrow-right-circle me-2"></i>View Programs
+            </button>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Colleges Card -->
+    <div class="col-md-4">
+      <a href="/colleges" class="text-decoration-none">
+        <div class="card h-100 border-0 shadow-sm hover-lift home-card">
+          <div class="card-body text-center p-5">
+            <div class="mb-4">
+              <i class="bi bi-building display-1 text-info"></i>
+            </div>
+            <h3 class="fw-bold mb-3 card-title-text">Colleges</h3>
+            <p class="card-description mb-4">
+              Manage college and department information including codes and names.
+            </p>
+            <div class="d-flex justify-content-around text-center mb-3">
+              <div>
+                <h4 class="fw-bold text-info mb-0">{{ total_colleges }}</h4>
+                <small class="text-muted">Total</small>
+              </div>
+            </div>
+            <button class="btn btn-info btn-lg w-100">
+              <i class="bi bi-arrow-right-circle me-2"></i>View Colleges
+            </button>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <div class="row g-4 mb-5">
+    <div class="col-12">
+      <h2 class="text-center fw-bold mb-4 section-title">System Features</h2>
+    </div>
+    <div class="col-md-3">
+      <div class="text-center">
+        <i class="bi bi-plus-circle display-4 text-primary mb-3"></i>
+        <h5 class="fw-bold feature-title">Create Records</h5>
+        <p class="feature-description small">Add new students, programs, and colleges</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="text-center">
+        <i class="bi bi-pencil-square display-4 text-success mb-3"></i>
+        <h5 class="fw-bold feature-title">Update Information</h5>
+        <p class="feature-description small">Edit existing records with ease</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="text-center">
+        <i class="bi bi-search display-4 text-info mb-3"></i>
+        <h5 class="fw-bold feature-title">Search & Filter</h5>
+        <p class="feature-description small">Find records quickly with advanced search</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="text-center">
+        <i class="bi bi-image display-4 text-warning mb-3"></i>
+        <h5 class="fw-bold feature-title">Photo Upload</h5>
+        <p class="feature-description small">Upload student profile photos</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <div class="row text-center">
+        <div class="col-md-4">
+          <h2 class="fw-bold text-primary">{{ total_students }}</h2>
+          <p class="stat-label mb-0">Students Enrolled</p>
+        </div>
+        <div class="col-md-4">
+          <h2 class="fw-bold text-success">{{ total_programs }}</h2>
+          <p class="stat-label mb-0">Academic Programs</p>
+        </div>
+        <div class="col-md-4">
+          <h2 class="fw-bold text-info">{{ total_colleges }}</h2>
+          <p class="stat-label mb-0">Colleges & Departments</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+}
+
+.card a {
+  color: inherit;
+}
+</style>
+{% endblock %}
+

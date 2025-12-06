@@ -1,16 +1,29 @@
-from flask import Blueprint, render_template, request, jsonify, flash, abort
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from website.models.studentModels import StudentModel
-from website.models.courseModels import CourseModel
+from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
 from cloudinary.uploader import upload
 from cloudinary.utils import cloudinary_url
 from cloudinary.uploader import destroy as cloudinary_destroy
 import cloudinary
 import os
+from datetime import datetime
+
+# Ensure logs directory exists
+os.makedirs('logs', exist_ok=True)
+
+def log_activity(action, details):
+    """Log all student-related activities"""
+    log_entry = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {action}: {details}\n"
+    try:
+        with open('logs/activity.log', 'a', encoding='utf-8') as f:
+            f.write(log_entry)
+    except Exception as e:
+        print(f"Logging error: {e}")
 
 studentRoute = Blueprint('students', __name__)
 student_model = StudentModel()
-course_model = CourseModel()
+program_model = ProgramModel()
 college_model = CollegeModel()
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -61,7 +74,7 @@ def students():
     page_number = request.args.get('page_number', 1, type=int)
     page_size = request.args.get('page_size', 8, type=int)
 
-    courses = course_model.get_courses()
+    programs = program_model.get_programs()
     students = []
 
     search_query = "" if search_query is None else search_query
@@ -76,7 +89,7 @@ def students():
 
     return render_template(
         "students.html",
-        courses=courses,
+        programs=programs,
         students=students,
         search_query=search_query,
         page_number=page_number,
@@ -89,30 +102,53 @@ def add_student():
     id = request.form.get("studentID")
     firstname = request.form.get("firstName")
     lastname = request.form.get("lastName")
-    course_code = request.form.get("courseCode")
+    program_code = request.form.get("programCode")
     year = request.form.get("year")
     gender = request.form.get("gender")
-    student_model.create_student(id, firstname, lastname, course_code, year, gender)
+    
+    # Log the creation
+    log_activity("CREATE Student", f"ID={id}, Name={firstname} {lastname}, Program={program_code}, Year={year}, Gender={gender}")
+    
+    student_model.create_student(id, firstname, lastname, program_code, year, gender)
     flash('Student created successfully', 'success')
     return id
 
 
+@studentRoute.route("/students/view/<string:student_id>", methods=["GET"])
+def view_student(student_id):
+    # Log the view
+    log_activity("VIEW Student", f"ID={student_id}")
+    
+    flash('Student details viewed', 'info')
+    return redirect(url_for('students.students'))
 
-@studentRoute.route("/students/delete/<string:student_id>", methods=["DELETE"])
+
+@studentRoute.route("/students/delete/<string:student_id>", methods=["GET", "POST", "DELETE"])
 def delete_student(student_id):
+    # Log the deletion
+    log_activity("DELETE Student", f"ID={student_id}")
+    
     result = student_model.delete_student(student_id)
-    return jsonify({'success': result == 'Student deleted successfully'})
+    
+    if request.method == "DELETE" or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': result == 'Student deleted successfully'})
+    else:
+        flash(result, 'success' if 'successfully' in result else 'danger')
+        return redirect(url_for('students.students'))
 
 @studentRoute.route("/students/edit/<string:student_id>", methods=["POST"])
 def edit_student(student_id):
     new_first_name = request.form.get("firstName")
     new_last_name = request.form.get("lastName")
-    new_course_code = request.form.get("courseCode")
+    new_program_code = request.form.get("programCode")
     new_year = request.form.get("year")
     new_gender = request.form.get("gender")
 
+    # Log the edit
+    log_activity("EDIT Student", f"ID={student_id}, Name={new_first_name} {new_last_name}, Program={new_program_code}, Year={new_year}, Gender={new_gender}")
+
     result = student_model.update_student(
-        student_id, new_first_name, new_last_name, new_course_code, new_year, new_gender
+        student_id, new_first_name, new_last_name, new_program_code, new_year, new_gender
     )
 
     return jsonify({'success': result == 'Student updated successfully'})

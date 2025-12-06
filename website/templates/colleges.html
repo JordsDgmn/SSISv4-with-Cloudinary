@@ -1,205 +1,244 @@
 {% extends 'layouts.html' %} {% block content %}
 
-<div class="college_container rounded p-3">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5>College List</h5>
-        <div class="input-group w-50 align-center">
-          <button
-            type="button"
-            class="btn btn-dark"
-            id="refreshButton"
-            name="refreshButton"
-          >
-            Refresh
-          </button>
-          <input
-            type="text"
-            class="form-control"
-            id="searchInput"
-            placeholder="Search Colleges"
-            value="{{ search_query }}"
-          />
-          <div class="input-group-append">
-            <button class="btn btn-primary" id="searchButton" type="button">
-              Search
-            </button>
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">College Management</h1>
+      <p class="mb-0 text-muted">Manage academic colleges and departments</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCollegeModal" style="padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600;">
+      <i class="bi bi-plus-circle me-2" style="font-size: 1.3rem;"></i>Add College
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-6 col-md-6">
+      <div class="card-stats">
+        <div class="d-flex align-items-center">
+          <div class="icon-wrapper bg-primary">
+            <i class="bi bi-building"></i>
+          </div>
+          <div class="ms-3">
+            <div class="stats-number">{{ colleges|length if colleges else 0 }}</div>
+            <div class="stats-label">Total Colleges</div>
           </div>
         </div>
-        <div>
-          <button
-            type="button"
-            class="btn btn-success"
-            data-bs-toggle="modal"
-            data-bs-target="#addCollegeModal"
-          >
-            + Add College
-          </button>
+      </div>
+    </div>
+    <div class="col-xl-6 col-md-6">
+      <div class="card-stats">
+        <div class="d-flex align-items-center">
+          <div class="icon-wrapper bg-success">
+            <i class="bi bi-book"></i>
+          </div>
+          <div class="ms-3">
+            <div class="stats-number">{{ programs|length if programs else 0 }}</div>
+            <div class="stats-label">Total Programs</div>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
 
+  <!-- Colleges Table -->
+  <div class="card-modern">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-table me-2"></i>College Directory
+      </h5>
+      <div class="card-actions">
+        <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('collegesTable')">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
       {% if colleges %}
-        <table class="table table-light table-borderless table-hover ">
-          <tr >
-            <th>College Code</th>
-            <th>College</th>
-            <th>Action</th>
-          </tr>
-          {% for college in colleges|reverse %}
-            <tr id="collegeRow">
-              <td>{{ college.code }}</td>
-              <td>{{ college.name }}</td>
-              <td>
-                <button
-                  type="button"
-                  class="btn btn-primary edit-college"
-                  data-college-code="{{ college.code }}"
-                  data-college-name="{{ college.name }}"
-                  data-bs-toggle="modal"
-                  data-bs-target="#editCollegeModal"
-                >
-                  Edit
-                </button>
-                <a
-                  href="#"
-                  class="btn btn-danger delete-college"
-                  data-college-code="{{ college.code }}"
-                >
-                  Delete
-                </a>
-              </td>
-            </tr>
-          {% endfor %}
-        </table>
+        <div class="table-responsive">
+          <table class="table table-modern" id="collegesTable">
+            <thead>
+              <tr>
+                <th>College Code</th>
+                <th>College Name</th>
+                <th>Programs</th>
+                <th>Students</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for college in colleges %}
+                <tr>
+                  <td>
+                    <span class="badge bg-primary">{{ college.code }}</span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-building text-muted me-2"></i>
+                      <span class="fw-medium">{{ college.name }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    {% set program_count = programs|selectattr('college_code', 'equalto', college.code)|list|length if programs else 0 %}
+                    <span class="badge bg-outline-secondary">{{ program_count }} programs</span>
+                  </td>
+                  <td>
+                    {% set student_count = students|selectattr('college', 'equalto', college.code)|list|length if students else 0 %}
+                    <span class="badge bg-outline-info">{{ student_count }} students</span>
+                  </td>
+                  <td class="text-center">
+                    <div class="btn-group" role="group">
+                      <button type="button" 
+                              class="btn btn-outline-primary btn-sm edit-college" 
+                              data-college-code="{{ college.code }}"
+                              data-college-name="{{ college.name }}"
+                              data-bs-toggle="modal"
+                              data-bs-target="#editCollegeModal"
+                              title="Edit College">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button type="button" 
+                              class="btn btn-outline-danger btn-sm delete-college" 
+                              data-college-code="{{ college.code }}"
+                              title="Delete College">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% else %}
-        <p>Database Empty. Click "Add College" to add an entry.</p>
+        <div class="text-center py-5">
+          <i class="bi bi-building display-1 text-muted"></i>
+          <h4 class="mt-3 text-muted">No Colleges Found</h4>
+          <p class="text-muted">Get started by adding your first college to the system.</p>
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCollegeModal">
+            <i class="bi bi-plus-circle me-2"></i>Add First College
+          </button>
+        </div>
       {% endif %}
     </div>
   </div>
 </div>
 
- 
-
-<!-- Add College Form Modal -->
-<div
-  class="modal fade"
-  id="addCollegeModal"
-  tabindex="-1"
-  role="dialog"
-  aria-labelledby="addCollegeModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog" role="document">
+<!-- Add College Modal -->
+<div class="modal fade" id="addCollegeModal" tabindex="-1" aria-labelledby="addCollegeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
     <form action="" method="POST">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Add College</h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
+      <div class="modal-content border-0">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-plus-circle me-2"></i>Add New College
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="collegeCode">College Code</label>
-            <input
-              type="text"
-              class="form-control"
-              id="collegeCode"
-              name="collegeCode"
-              placeholder="Input College Code"
-              required
-            />
+        <div class="modal-body p-4">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-floating mb-3">
+                <input type="text" 
+                       class="form-control" 
+                       id="collegeCode" 
+                       name="collegeCode" 
+                       placeholder="College Code"
+                       required>
+                <label for="collegeCode">
+                  <i class="bi bi-hash me-2"></i>College Code
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating mb-3">
+                <input type="text" 
+                       class="form-control" 
+                       id="collegeName" 
+                       name="collegeName" 
+                       placeholder="College Name"
+                       required>
+                <label for="collegeName">
+                  <i class="bi bi-building me-2"></i>College Name
+                </label>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="collegeName">College</label>
-            <input
-              type="text"
-              class="form-control"
-              id="collegeName"
-              name="collegeName"
-              placeholder="Input College"
-              required
-            />
+          <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            <small>Make sure the college code is unique and follows your institution's naming conventions.</small>
           </div>
         </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Close
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Cancel
           </button>
-          <button type="submit" class="btn btn-primary">Save changes</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle me-2"></i>Add College
+          </button>
         </div>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Edit College Form Modal -->
-<div
-  class="modal fade"
-  id="editCollegeModal"
-  tabindex="-1"
-  role="dialog"
-  aria-labelledby="editCollegeModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog" role="document">
+<!-- Edit College Modal -->
+<div class="modal fade" id="editCollegeModal" tabindex="-1" aria-labelledby="editCollegeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
     <form id="editCollegeForm" method="POST">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit College</h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
+      <div class="modal-content border-0">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-pencil me-2"></i>Edit College
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="editCollegeCode">College Code</label>
-            <input
-              type="text"
-              class="form-control"
-              id="editCollegeCode"
-              name="collegeCode"
-              placeholder="College Code"
-              readonly
-            />
+        <div class="modal-body p-4">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-floating mb-3">
+                <input type="text" 
+                       class="form-control" 
+                       id="editCollegeCode" 
+                       name="collegeCode" 
+                       placeholder="College Code"
+                       readonly>
+                <label for="editCollegeCode">
+                  <i class="bi bi-hash me-2"></i>College Code (Read-only)
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating mb-3">
+                <input type="text" 
+                       class="form-control" 
+                       id="editCollegeName" 
+                       name="collegeName" 
+                       placeholder="College Name"
+                       required>
+                <label for="editCollegeName">
+                  <i class="bi bi-building me-2"></i>College Name
+                </label>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="editCollegeName">College</label>
-            <input
-              type="text"
-              class="form-control"
-              id="editCollegeName"
-              name="collegeName"
-              placeholder="College Name"
-              required
-            />
+          <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <small>Changing the college name will affect all associated courses and students.</small>
           </div>
         </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Close
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Cancel
           </button>
-          <button type="submit" class="btn btn-primary" id="editCollegeButton">
-            Save changes
+          <button type="submit" class="btn btn-info">
+            <i class="bi bi-check-circle me-2"></i>Update College
           </button>
         </div>
       </div>
     </form>
   </div>
 </div>
+
 {% endblock %}

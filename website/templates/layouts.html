@@ -4,115 +4,145 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-      crossorigin="anonymous"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
-      rel="stylesheet"
-    />  
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-      integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='layouts.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='students.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='courses.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='colleges.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='student_profiles.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='view_profile.css') }}"
-    />
+    
+    <!-- Enhanced Bootstrap and Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Google Fonts for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- DataTables for advanced table functionality -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='modern-style.css') }}">
+    
+    <!-- Dark Mode Script - MUST be in head for onclick to work -->
+    <script>
+      // Global dark mode toggle function - available immediately
+      function toggleDarkMode() {
+        console.log('toggleDarkMode() called!');
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        console.log('Current theme:', currentTheme, '→ New theme:', newTheme);
+        
+        // Set theme on html element
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Update icon
+        const icon = document.getElementById('darkModeIcon');
+        if (icon) {
+          if (newTheme === 'dark') {
+            icon.classList.remove('bi-moon-fill');
+            icon.classList.add('bi-sun-fill');
+            console.log('Icon changed to SUN (dark mode)');
+          } else {
+            icon.classList.remove('bi-sun-fill');
+            icon.classList.add('bi-moon-fill');
+            console.log('Icon changed to MOON (light mode)');
+          }
+        }
+        
+        console.log('Theme applied! Check data-theme attribute:', html.getAttribute('data-theme'));
+      }
+      
+      // Initialize theme on page load
+      (function() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        console.log('Page loaded with theme:', savedTheme);
+      })();
+    </script>
+    
+    <title>{% block title %}SSIS v4{% endblock %}</title>
   </head>
+  
   <body>
-    <div id="message">
-      <div style="padding: 5px;">
-          {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                  {% for category, message in messages %}
-                      <div id="inner-message" class="alert alert-{% if 'success' in category %}success{% else %}danger{% endif %} alert-dismissible fade show">
-                          {{ message }}
-                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
-                      </div>
-                  {% endfor %}
-              {% endif %}
-          {% endwith %}
-      </div>
-    </div>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <!-- Modern Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm modern-navbar">
       <div class="container">
-        <a class="navbar-brand" href="/">
-          <!-- <img src="{{ url_for('static', filename='logo.png') }}" width="1500" height="750" class="d-inline-block align-top" alt=""> -->
+        <a class="navbar-brand d-flex align-items-center" href="/">
+          <img src="{{ url_for('static', filename='logo.png') }}" width="32" height="32" class="me-2" alt="SSIS Logo">
+          <span class="fw-bold">SSIS<span class="text-primary">v4</span></span>
         </a>
-        <!-- Navbar Toggler Button for mobile devices -->
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <!-- Navbar Items -->
+        
         <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
+          <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link" href="/colleges">Colleges</a>
+              <a class="nav-link d-flex align-items-center" href="/students">
+                <i class="bi bi-people me-2"></i>Students
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/courses">Courses</a>
+              <a class="nav-link d-flex align-items-center" href="/programs">
+                <i class="bi bi-book me-2"></i>Programs
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/students">Students</a>
+              <a class="nav-link d-flex align-items-center" href="/colleges">
+                <i class="bi bi-building me-2"></i>Colleges
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link d-flex align-items-center" href="/logs">
+                <i class="bi bi-file-text me-2"></i>Logs
+              </a>
             </li>
           </ul>
+          
+          <div class="navbar-nav">
+            <!-- Dark Mode Toggle -->
+            <button id="darkModeToggle" type="button" class="dark-mode-toggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()">
+              <i id="darkModeIcon" class="bi bi-moon-fill"></i>
+            </button>
+          </div>
         </div>
       </div>
     </nav>
 
-    {% block content %} {% endblock %}
+    <!-- Flash Messages -->
+    <div class="flash-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if 'success' in category else 'danger' }} alert-dismissible fade show shadow-sm" role="alert">
+              <i class="bi bi-{{ 'check-circle' if 'success' in category else 'exclamation-triangle' }} me-2"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
 
-    <script
-      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-      integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"
-      integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
-      crossorigin="anonymous"
-    ></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script
-      type="text/javascript"
-      src="{{ url_for('static', filename='app.js') }}"
-    ></script>
+    <!-- Main Content -->
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script src="{{ url_for('static', filename='modern-app.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
   </body>
 </html>
-

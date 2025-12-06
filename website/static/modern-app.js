@@ -1,0 +1,577 @@
+// Modern SSIS Application JavaScript
+const SSISApp = {
+  // Configuration
+  config: {
+    dataTableConfig: {
+      responsive: true,
+      pageLength: 25,
+      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search records...",
+        lengthMenu: "Show _MENU_ entries",
+        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+        infoEmpty: "Showing 0 to 0 of 0 entries",
+        infoFiltered: "(filtered from _MAX_ total entries)",
+        zeroRecords: "No matching records found",
+        emptyTable: "No data available in table"
+      },
+      dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"f><"d-flex align-items-center"l>>rtip',
+      columnDefs: [
+        { orderable: false, targets: -1 } // Disable sorting on Actions column
+      ],
+      order: [[0, 'asc']], // Default sort by first column
+      drawCallback: function() {
+        // Re-bind event handlers after table redraw
+        SSISApp.bindEventHandlers();
+      }
+    }
+  },
+
+  // Initialize application
+  init() {
+    console.log('SSISApp initializing...');
+    // Dark mode is now handled in head script
+    this.initDataTables();
+    this.bindEventHandlers();
+    this.initFormValidation();
+    this.showWelcomeMessage();
+    console.log('SSISApp initialized successfully');
+  },
+
+  // Initialize DataTables for all pages
+  initDataTables() {
+    // Students table
+    if (document.getElementById('studentsTable')) {
+      $('#studentsTable').DataTable({
+        ...this.config.dataTableConfig,
+        order: [[0, 'asc']], // Sort by Student ID
+        columnDefs: [
+          { orderable: false, targets: -1 }, // Actions column
+          { className: "text-center", targets: [0, 6] }, // Center align ID and Actions
+          { width: "120px", targets: -1 } // Fixed width for actions
+        ]
+      });
+    }
+
+    // Courses table
+    if (document.getElementById('coursesTable')) {
+      $('#coursesTable').DataTable({
+        ...this.config.dataTableConfig,
+        order: [[0, 'asc']], // Sort by Course Code
+        columnDefs: [
+          { orderable: false, targets: -1 }, // Actions column
+          { className: "text-center", targets: [0, 2, 4] }, // Center align codes and actions
+          { width: "120px", targets: -1 } // Fixed width for actions
+        ]
+      });
+    }
+
+    // Colleges table
+    if (document.getElementById('collegesTable')) {
+      $('#collegesTable').DataTable({
+        ...this.config.dataTableConfig,
+        order: [[0, 'asc']], // Sort by College Code
+        columnDefs: [
+          { orderable: false, targets: -1 }, // Actions column
+          { className: "text-center", targets: [0, 2, 3, 4] }, // Center align codes, counts and actions
+          { width: "120px", targets: -1 } // Fixed width for actions
+        ]
+      });
+    }
+  },
+
+  // Bind event handlers
+  bindEventHandlers() {
+    // Student form handlers
+    this.bindStudentHandlers();
+    
+    // Course form handlers
+    this.bindCourseHandlers();
+    
+    // College form handlers
+    this.bindCollegeHandlers();
+    
+    // Global handlers
+    this.bindGlobalHandlers();
+  },
+
+  // Student-specific event handlers
+  bindStudentHandlers() {
+    // Edit student
+    $(document).off('click', '.edit-student').on('click', '.edit-student', function() {
+      const data = $(this).data();
+      $('#editStudentId').val(data.studentId);
+      $('#editFirstName').val(data.firstName);
+      $('#editLastName').val(data.lastName);
+      $('#editCourse').val(data.course);
+      $('#editYear').val(data.year);
+      $('#editGender').val(data.gender);
+      
+      // Set form action
+      $('#editStudentForm').attr('action', `/students/edit/${data.studentId}`);
+    });
+
+    // Delete student
+    $(document).off('click', '.delete-student').on('click', '.delete-student', function(e) {
+      e.preventDefault();
+      const studentId = $(this).data('student-id');
+      const studentName = $(this).closest('tr').find('td:nth-child(2)').text().trim();
+      
+      if (confirm(`Are you sure you want to delete student ${studentName} (${studentId})?`)) {
+        window.location.href = `/students/delete/${studentId}`;
+      }
+    });
+  },
+
+  // Course-specific event handlers
+  bindCourseHandlers() {
+    // Edit course
+    $(document).off('click', '.edit-course').on('click', '.edit-course', function() {
+      const data = $(this).data();
+      $('#editCourseCode').val(data.courseCode);
+      $('#editCourseName').val(data.courseName);
+      $('#editCollegeCode').val(data.collegeCode);
+      
+      // Set form action
+      $('#editCourseForm').attr('action', `/courses/edit/${data.courseCode}`);
+    });
+
+    // Delete program/course
+    $(document).off('click', '.delete-course, .delete-program').on('click', '.delete-course, .delete-program', function(e) {
+      e.preventDefault();
+      const programCode = $(this).data('program-code') || $(this).data('course-code');
+      const programName = $(this).closest('tr').find('td:nth-child(2)').text().trim();
+      
+      if (confirm(`Are you sure you want to delete program ${programName} (${programCode})?`)) {
+        window.location.href = `/programs/delete/${programCode}`;
+      }
+    });
+  },
+
+  // College-specific event handlers
+  bindCollegeHandlers() {
+    // Edit college
+    $(document).off('click', '.edit-college').on('click', '.edit-college', function() {
+      const data = $(this).data();
+      $('#editCollegeCode').val(data.collegeCode);
+      $('#editCollegeName').val(data.collegeName);
+      
+      // Set form action
+      $('#editCollegeForm').attr('action', `/colleges/edit/${data.collegeCode}`);
+    });
+
+    // Delete college
+    $(document).off('click', '.delete-college').on('click', '.delete-college', function(e) {
+      e.preventDefault();
+      const collegeCode = $(this).data('college-code');
+      const collegeName = $(this).closest('tr').find('td:nth-child(2)').text().trim();
+      
+      if (confirm(`Are you sure you want to delete college ${collegeName} (${collegeCode})?`)) {
+        window.location.href = `/colleges/delete/${collegeCode}`;
+      }
+    });
+  },
+
+  // Global event handlers
+  bindGlobalHandlers() {
+    // Form submission with loading states
+    $('form').on('submit', function() {
+      const submitBtn = $(this).find('button[type="submit"]');
+      const originalText = submitBtn.html();
+      
+      submitBtn.prop('disabled', true)
+             .html('<i class="bi bi-arrow-clockwise me-2 spin"></i>Processing...');
+      
+      // Re-enable after 3 seconds as fallback
+      setTimeout(() => {
+        submitBtn.prop('disabled', false).html(originalText);
+      }, 3000);
+    });
+
+    // Auto-dismiss alerts
+    setTimeout(() => {
+      $('.alert-dismissible').fadeOut('slow');
+    }, 5000);
+  },
+
+  // Form validation
+  initFormValidation() {
+    // Add custom validation styles
+    $('form').on('submit', function(e) {
+      const form = this;
+      
+      if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Focus on first invalid field
+        const firstInvalid = $(form).find(':invalid').first();
+        firstInvalid.focus();
+        
+        // Show custom validation message
+        this.showToast('Please fill in all required fields correctly.', 'error');
+      }
+      
+      $(form).addClass('was-validated');
+    });
+  },
+
+  // Utility functions
+  refreshTable(tableId) {
+    if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
+      $(`#${tableId}`).DataTable().ajax.reload(null, false);
+    } else {
+      location.reload();
+    }
+  },
+
+  showToast(message, type = 'info') {
+    const alertClass = type === 'error' ? 'alert-danger' : 
+                      type === 'success' ? 'alert-success' : 
+                      'alert-info';
+    
+    const toast = $(`
+      <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+           style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+        <i class="bi bi-${type === 'error' ? 'exclamation-triangle' : 
+                          type === 'success' ? 'check-circle' : 
+                          'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `);
+    
+    $('body').append(toast);
+    
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      toast.fadeOut('slow', () => toast.remove());
+    }, 4000);
+  },
+
+  showWelcomeMessage() {
+    // Show welcome message for first-time visitors
+    if (!localStorage.getItem('ssis_visited')) {
+      setTimeout(() => {
+        this.showToast('Welcome to the Modern Student Information System!', 'success');
+        localStorage.setItem('ssis_visited', 'true');
+      }, 1000);
+    }
+  },
+
+  // Image upload preview
+  previewImage(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const preview = $(input).siblings('.image-preview');
+        if (preview.length === 0) {
+          $(input).after(`<div class="image-preview mt-2">
+            <img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+          </div>`);
+        } else {
+          preview.find('img').attr('src', e.target.result);
+        }
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+};
+
+// Initialize application when DOM is ready
+$(document).ready(function() {
+  SSISApp.init();
+});
+
+// File input change handler for image preview
+$(document).on('change', 'input[type="file"][accept*="image"]', function() {
+  SSISApp.previewImage(this);
+});
+
+// Export for global access
+window.SSISApp = SSISApp;
+    // Check if we're on a page that should have DataTables
+    const tableSelectors = ['#studentsTable', '#coursesTable', '#collegesTable'];
+    
+    tableSelectors.forEach(selector => {
+      const table = document.querySelector(selector);
+      if (table) {
+        this.setupDataTable(selector);
+      }
+    });
+  },
+  
+  // Setup individual DataTable
+  setupDataTable(selector) {
+    const tableConfig = {
+      responsive: true,
+      pageLength: 10,
+      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+      language: {
+        search: '',
+        searchPlaceholder: 'Search records...',
+        lengthMenu: 'Show _MENU_ records',
+        info: 'Showing _START_ to _END_ of _TOTAL_ records',
+        infoEmpty: 'No records found',
+        infoFiltered: '(filtered from _MAX_ total records)',
+        paginate: {
+          first: '<i class="bi bi-chevron-double-left"></i>',
+          last: '<i class="bi bi-chevron-double-right"></i>',
+          next: '<i class="bi bi-chevron-right"></i>',
+          previous: '<i class="bi bi-chevron-left"></i>'
+        }
+      },
+      dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+           '<"row"<"col-sm-12"tr>>' +
+           '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      columnDefs: [
+        { 
+          targets: [-1], // Last column (Actions)
+          orderable: false,
+          searchable: false
+        }
+      ]
+    };
+    
+    // Add specific configurations based on table type
+    if (selector === '#studentsTable') {
+      tableConfig.order = [[1, 'asc']]; // Sort by ID
+      tableConfig.columnDefs.push({
+        targets: [0], // Profile picture column
+        orderable: false,
+        searchable: false
+      });
+    }
+    
+    try {
+      this.tables[selector] = $(selector).DataTable(tableConfig);
+      this.enhanceDataTableSearch(selector);
+    } catch (error) {
+      console.warn(`Could not initialize DataTable for ${selector}:`, error);
+    }
+  },
+  
+  // Enhance DataTable search functionality
+  enhanceDataTableSearch(selector) {
+    const table = this.tables[selector];
+    if (!table) return;
+    
+    // Custom search input styling
+    const searchInput = $(selector + '_filter input');
+    searchInput.addClass('form-control');
+    searchInput.attr('placeholder', 'Search records...');
+    
+    // Add search icon
+    const searchWrapper = $(selector + '_filter');
+    searchWrapper.addClass('search-input-group');
+    searchWrapper.prepend('<i class="bi bi-search search-icon"></i>');
+    
+    // Length select styling
+    const lengthSelect = $(selector + '_length select');
+    lengthSelect.addClass('form-select form-select-sm');
+  },
+  
+  // Setup form validation
+  setupFormValidation() {
+    const forms = document.querySelectorAll('.needs-validation');
+    forms.forEach(form => {
+      form.addEventListener('submit', event => {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      });
+    });
+  },
+  
+  // Setup search enhancements
+  setupSearchEnhancements() {
+    // Real-time search functionality
+    const searchInputs = document.querySelectorAll('[data-search-target]');
+    searchInputs.forEach(input => {
+      let timeout;
+      input.addEventListener('input', (e) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          this.performSearch(e.target);
+        }, 300);
+      });
+    });
+  },
+  
+  // Perform search
+  performSearch(input) {
+    const target = input.getAttribute('data-search-target');
+    const query = input.value.trim();
+    
+    if (this.tables[target]) {
+      this.tables[target].search(query).draw();
+    }
+  },
+  
+  // Handle form submission with loading state
+  handleFormSubmit(event) {
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+      
+      // Re-enable after 3 seconds as fallback
+      setTimeout(() => {
+        if (submitBtn.disabled) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
+        }
+      }, 3000);
+    }
+  },
+  
+  // Handle delete confirmation
+  handleDeleteConfirmation(event) {
+    event.preventDefault();
+    const button = event.target.closest('[data-action="delete"]');
+    const itemType = button.getAttribute('data-item-type') || 'item';
+    const itemName = button.getAttribute('data-item-name') || '';
+    
+    const modal = this.createConfirmationModal(itemType, itemName, () => {
+      // Proceed with deletion
+      const deleteUrl = button.getAttribute('href') || button.getAttribute('data-url');
+      if (deleteUrl) {
+        this.performDelete(deleteUrl, button);
+      }
+    });
+    
+    modal.show();
+  },
+  
+  // Create confirmation modal
+  createConfirmationModal(itemType, itemName, onConfirm) {
+    // Create modal HTML
+    const modalHtml = `
+      <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header border-0">
+              <h5 class="modal-title">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                Confirm Deletion
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3">Are you sure you want to delete this ${itemType}?</p>
+              ${itemName ? `<p class="mb-0"><strong>${itemName}</strong></p>` : ''}
+              <small class="text-muted">This action cannot be undone.</small>
+            </div>
+            <div class="modal-footer border-0">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('confirmDeleteModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Setup confirm button
+    document.getElementById('confirmDeleteBtn').addEventListener('click', onConfirm);
+    
+    // Return Bootstrap modal instance
+    return new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+  },
+  
+  // Perform delete operation
+  async performDelete(url, button) {
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Show success message
+        this.showToast('Success', 'Item deleted successfully', 'success');
+        
+        // Remove table row or reload page
+        const row = button.closest('tr');
+        if (row && this.tables['#studentsTable']) {
+          this.tables['#studentsTable'].row(row).remove().draw();
+        } else {
+          // Fallback to page reload
+          setTimeout(() => location.reload(), 1000);
+        }
+      } else {
+        this.showToast('Error', 'Failed to delete item', 'error');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      this.showToast('Error', 'An error occurred while deleting', 'error');
+    }
+    
+    // Hide modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+    modal.hide();
+  },
+  
+  // Show toast notification
+  showToast(title, message, type = 'info') {
+    const toastHtml = `
+      <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert">
+        <div class="d-flex">
+          <div class="toast-body">
+            <strong>${title}</strong><br>${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      </div>
+    `;
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+      document.body.appendChild(toastContainer);
+    }
+    
+    // Add toast
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    // Show toast
+    const toastElement = toastContainer.lastElementChild;
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // Remove toast element after it's hidden
+    toastElement.addEventListener('hidden.bs.toast', () => {
+      toastElement.remove();
+    });
+  }
+};
+
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, initializing SSISApp...');
+  SSISApp.init();
+});
+
+// Export for global access
+window.SSISApp = SSISApp;

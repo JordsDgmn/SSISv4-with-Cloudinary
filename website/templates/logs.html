@@ -1,0 +1,57 @@
+{% extends "layouts.html" %}
+
+{% block title %}Activity Logs - SSIS v4{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title">
+          <i class="bi bi-file-text me-3 text-info"></i>Activity Logs
+        </h1>
+        <p class="page-subtitle">System activity and management logs</p>
+      </div>
+      <a href="/logs/download" class="btn btn-info">
+        <i class="bi bi-download me-2"></i>Download Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Logs Display -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-clock-history me-2"></i>Recent Activity
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="log-container" style="max-height: 70vh; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+        {% if logs %}
+          {% for log in logs %}
+            <div class="log-entry" style="font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; padding: 0.5rem; border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+              {{ log|safe }}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+            <p class="text-muted">No logs available</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.log-entry:hover {
+  background-color: var(--bg-secondary);
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+</style>
+{% endblock %}
