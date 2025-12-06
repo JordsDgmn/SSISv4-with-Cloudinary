@@ -203,16 +203,15 @@
         <div class="modal-body p-4">
           <div class="row">
             <div class="col-md-6">
-              <div class="form-floating mb-3">
-                <input type="text" 
-                       class="form-control" 
-                       id="editCollegeCode" 
-                       name="collegeCode" 
-                       placeholder="College Code"
-                       required>
-                <label for="editCollegeCode">
-                  <i class="bi bi-hash me-2"></i>College Code
+              <div class="mb-3">
+                <label for="editCollegeCode" class="form-label text-muted">
+                  <i class="bi bi-lock-fill me-1"></i>College Code (Cannot be changed)
                 </label>
+                <input type="text" 
+                       class="form-control-plaintext bg-light text-muted px-3 py-2 rounded" 
+                       id="editCollegeCode" 
+                       readonly 
+                       style="border: 1px solid var(--border-color); cursor: not-allowed;">
               </div>
             </div>
             <div class="col-md-6">

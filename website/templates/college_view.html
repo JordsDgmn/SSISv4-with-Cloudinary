@@ -36,11 +36,11 @@
       <div class="row">
         <div class="col-md-3 mb-3">
           <label class="text-muted small">College Code</label>
-          <p class="fw-bold font-monospace">{{ college.code }}</p>
+          <p class="fw-bold font-monospace" style="color: var(--text-primary);">{{ college.code }}</p>
         </div>
         <div class="col-md-5 mb-3">
           <label class="text-muted small">College Name</label>
-          <p class="fw-semibold">{{ college.name }}</p>
+          <p class="fw-semibold" style="color: var(--text-primary);">{{ college.name }}</p>
         </div>
         <div class="col-md-2 mb-3">
           <label class="text-muted small">Total Programs</label>
@@ -48,7 +48,11 @@
         </div>
         <div class="col-md-2 mb-3">
           <label class="text-muted small">Total Students</label>
-          <p><span class="badge bg-primary" style="font-size: 1rem;">{{ students_by_program.values()|sum(attribute='length',start=0) }}</span></p>
+          {% set total_students = namespace(count=0) %}
+          {% for program_students in students_by_program.values() %}
+            {% set total_students.count = total_students.count + (program_students|length) %}
+          {% endfor %}
+          <p><span class="badge bg-primary" style="font-size: 1rem;">{{ total_students.count }}</span></p>
         </div>
       </div>
     </div>
@@ -102,6 +106,13 @@
                           data-program-name="{{ program.program_name }}"
                           data-college-code="{{ program.college_code }}">
                     <i class="bi bi-pencil"></i>
+                  </button>
+                  <button type="button"
+                          class="btn btn-outline-danger btn-sm delete-program"
+                          title="Delete Program"
+                          data-program-code="{{ program.program_code }}"
+                          data-program-name="{{ program.program_name }}">
+                    <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </td>
@@ -196,6 +207,13 @@
                               data-year="{{ student.year }}"
                               data-gender="{{ student.gender }}">
                         <i class="bi bi-pencil"></i>
+                      </button>
+                      <button type="button"
+                              class="btn btn-outline-danger btn-sm delete-student"
+                              title="Delete Student"
+                              data-student-id="{{ student.id }}"
+                              data-student-name="{{ student.firstname }} {{ student.lastname }}">
+                        <i class="bi bi-trash"></i>
                       </button>
                     </div>
                   </td>

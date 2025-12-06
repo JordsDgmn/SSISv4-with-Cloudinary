@@ -69,11 +69,11 @@
           <div class="row mb-3">
             <div class="col-md-6">
               <label class="text-muted small">Student ID</label>
-              <p class="fw-semibold font-monospace">{{ student.id }}</p>
+              <p class="fw-semibold font-monospace" style="color: var(--text-primary);">{{ student.id }}</p>
             </div>
             <div class="col-md-6">
               <label class="text-muted small">Full Name</label>
-              <p class="fw-semibold">{{ student.firstname }} {{ student.lastname }}</p>
+              <p class="fw-semibold" style="color: var(--text-primary);">{{ student.firstname }} {{ student.lastname }}</p>
             </div>
           </div>
 
@@ -98,7 +98,7 @@
           <div class="row mb-3">
             <div class="col-md-12">
               <label class="text-muted small">Program</label>
-              <p class="fw-semibold">
+              <p class="fw-semibold" style="color: var(--text-primary);">
                 {{ student.program_name }}
                 <span class="text-muted">({{ student.program_code }})</span>
               </p>
@@ -108,7 +108,7 @@
           <div class="row mb-0">
             <div class="col-md-12">
               <label class="text-muted small">College</label>
-              <p class="fw-semibold">
+              <p class="fw-semibold" style="color: var(--text-primary);">
                 {{ student.college_name }}
                 <span class="text-muted">({{ student.college_code }})</span>
               </p>
