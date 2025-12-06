@@ -319,6 +319,39 @@ html:not([data-theme="dark"]) body::before {
   color: white;
 }
 
+.btn-outline-info {
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
+.btn-outline-info:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-outline-danger {
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+
+.btn-outline-danger:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-outline-success {
+  border: 2px solid var(--success);
+  color: var(--success);
+  background: transparent;
+}
+
+.btn-outline-success:hover {
+  background: var(--success);
+  color: white;
+}
+
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.8rem;
