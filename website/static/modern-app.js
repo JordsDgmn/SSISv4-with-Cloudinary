@@ -104,6 +104,8 @@ const SSISApp = {
     // Edit student - use event delegation on document
     $(document).off('click', '.edit-student').on('click', '.edit-student', function() {
       const data = $(this).data();
+      console.log('Edit student clicked, data:', data);
+      
       $('#editStudentId').val(data.studentId);
       $('#editStudentIdHidden').val(data.studentId);
       $('#editFirstName').val(data.firstName);
@@ -111,6 +113,9 @@ const SSISApp = {
       $('#editProgramCode').val(data.programCode);
       $('#editYear').val(data.year);
       $('#editGender').val(data.gender);
+      
+      console.log('Set program code to:', data.programCode);
+      console.log('Program dropdown value after setting:', $('#editProgramCode').val());
       
       // Set form action
       $('#editStudentForm').attr('action', `/students/edit/${data.studentId}`);

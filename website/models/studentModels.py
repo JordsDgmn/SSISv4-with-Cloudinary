@@ -14,6 +14,31 @@ class StudentModel:
             return f"Failed to create student: {str(e)}"
 
     @classmethod
+    def get_all_students(cls):
+        """Fetch all students without pagination - for DataTables to handle pagination"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT student.id, student.firstname, student.lastname,
+                        student.program_code, student.year, student.gender,
+                        student.profile_pic_url,
+                        program.name AS program_name, program.code AS program_code,
+                        college.name AS college_name, college.code AS college_code
+                    FROM student
+                    INNER JOIN program ON student.program_code = program.code
+                    INNER JOIN college ON program.college_code = college.code 
+                    ORDER BY student.id ASC
+                """)
+
+                results = cur.fetchall()
+                # Convert RealDictRow to regular dict
+                results = [dict(row) for row in results]
+                return results
+        except Exception as e:
+            print(f"Error fetching all students: {str(e)}")
+            return []
+
+    @classmethod
     def get_students(cls, page_size: int, page_number: int):
         print(f"Page size: {page_size}, Page number: {page_number}")
         offset = (page_number - 1) * page_size

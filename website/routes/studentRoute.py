@@ -71,8 +71,6 @@ def students():
         
 
     search_query = request.args.get("search")
-    page_number = request.args.get('page_number', 1, type=int)
-    page_size = request.args.get('page_size', 8, type=int)
 
     programs = program_model.get_programs()
     students = []
@@ -82,20 +80,17 @@ def students():
     if search_query:
         students = student_model.search_students(search_query)
     else:
-        students_data = student_model.get_students(page_number=page_number, page_size=page_size)
-        students = students_data.get("results")
-        has_prev = students_data.get("has_prev")
-        has_next = students_data.get("has_next")
+        # Fetch ALL students - let DataTables handle pagination on client side
+        students = student_model.get_all_students()
+    
+    total_count = len(students)
 
     return render_template(
         "students.html",
         programs=programs,
         students=students,
+        total_count=total_count,
         search_query=search_query,
-        page_number=page_number,
-        page_size=page_size,
-        has_prev=has_prev,
-        has_next=has_next,
     )
 
 def add_student():
