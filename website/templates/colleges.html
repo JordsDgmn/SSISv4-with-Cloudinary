@@ -64,7 +64,7 @@
                 <th>College Name</th>
                 <th>Programs</th>
                 <th>Students</th>
-                <th class="text-center">Actions</th>
+                <th width="150">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -89,6 +89,11 @@
                   </td>
                   <td class="text-center">
                     <div class="btn-group" role="group">
+                      <a href="/colleges/view/{{ college.code }}" 
+                         class="btn btn-outline-info btn-sm" 
+                         title="View College">
+                        <i class="bi bi-eye"></i>
+                      </a>
                       <button type="button" 
                               class="btn btn-outline-primary btn-sm edit-college" 
                               data-college-code="{{ college.code }}"
@@ -98,12 +103,13 @@
                               title="Edit College">
                         <i class="bi bi-pencil"></i>
                       </button>
-                      <button type="button" 
-                              class="btn btn-outline-danger btn-sm delete-college" 
-                              data-college-code="{{ college.code }}"
-                              title="Delete College">
+                      <a href="javascript:void(0)" 
+                         class="btn btn-outline-danger btn-sm delete-college" 
+                         data-college-code="{{ college.code }}"
+                         data-college-name="{{ college.name }}"
+                         title="Delete College">
                         <i class="bi bi-trash"></i>
-                      </button>
+                      </a>
                     </div>
                   </td>
                 </tr>
@@ -203,9 +209,9 @@
                        id="editCollegeCode" 
                        name="collegeCode" 
                        placeholder="College Code"
-                       readonly>
+                       required>
                 <label for="editCollegeCode">
-                  <i class="bi bi-hash me-2"></i>College Code (Read-only)
+                  <i class="bi bi-hash me-2"></i>College Code
                 </label>
               </div>
             </div>

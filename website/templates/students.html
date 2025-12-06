@@ -60,7 +60,7 @@
               <th>College</th>
               <th width="100">Year</th>
               <th width="80">Gender</th>
-              <th width="120">Actions</th>
+              <th width="150">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -102,22 +102,30 @@
                 </span>
               </td>
               <td>
-                <div class="action-buttons">
-                  <a href="/students/view/{{ student.id}}" class="btn btn-action btn-view" title="View Details">
+                <div class="btn-group" role="group">
+                  <a href="/students/view/{{ student.id}}" 
+                     class="btn btn-outline-info btn-sm" 
+                     title="View Details">
                     <i class="bi bi-eye"></i>
                   </a>
-                  <button class="btn btn-action btn-edit" title="Edit Student"
-                          data-bs-toggle="modal" data-bs-target="#editStudentModal"
+                  <button type="button"
+                          class="btn btn-outline-primary btn-sm edit-student" 
+                          title="Edit Student"
+                          data-bs-toggle="modal" 
+                          data-bs-target="#editStudentModal"
                           data-student-id="{{ student.id }}"
-                          data-firstname="{{ student.firstname }}"
-                          data-lastname="{{ student.lastname }}"
-                          data-program="{{ student.program_code }}"
+                          data-first-name="{{ student.firstname }}"
+                          data-last-name="{{ student.lastname }}"
+                          data-program-code="{{ student.program_code }}"
                           data-year="{{ student.year }}"
                           data-gender="{{ student.gender }}">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <a href="#" class="btn btn-action btn-delete delete-student" title="Delete Student" 
-                     data-student-id="{{ student.id }}">
+                  <a href="javascript:void(0)" 
+                     class="btn btn-outline-danger btn-sm delete-student" 
+                     title="Delete Student" 
+                     data-student-id="{{ student.id }}"
+                     data-student-name="{{ student.firstname }} {{ student.lastname }}">
                     <i class="bi bi-trash"></i>
                   </a>
                 </div>
@@ -244,14 +252,24 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form id="editStudentForm" class="needs-validation" novalidate>
+        <input type="hidden" id="editStudentIdHidden" name="studentID">
         <div class="modal-body">
           <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editStudentId" class="form-label">Student ID</label>
+                <input type="text" class="form-control" id="editStudentId" readonly>
+              </div>
+            </div>
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="editFirstName" class="form-label">First Name</label>
                 <input type="text" class="form-control" id="editFirstName" name="firstName" required>
               </div>
             </div>
+          </div>
+          
+          <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="editLastName" class="form-label">Last Name</label>
@@ -264,7 +282,7 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="editProgramCode" class="form-label">Program</label>
-                <select class="form-select" id="editprogramCode" name="programCode" required>
+                <select class="form-select" id="editProgramCode" name="programCode" required>
                   {% for program in programs %}
                     <option value="{{ program.program_code }}">
                       {{ program.program_name }} ({{ program.program_code }})
@@ -309,26 +327,6 @@
 
 {% block scripts %}
 <script>
-// Handle edit modal data population
-document.getElementById('editStudentModal').addEventListener('show.bs.modal', function (event) {
-  const button = event.relatedTarget;
-  const studentId = button.getAttribute('data-student-id');
-  const firstName = button.getAttribute('data-firstname');
-  const lastName = button.getAttribute('data-lastname');
-  const course = button.getAttribute('data-course');
-  const year = button.getAttribute('data-year');
-  const gender = button.getAttribute('data-gender');
-  
-  document.getElementById('editFirstName').value = firstName;
-  document.getElementById('editLastName').value = lastName;
-  document.getElementById('editprogramCode').value = course;
-  document.getElementById('editYear').value = year;
-  document.getElementById('editGender').value = gender;
-  
-  // Update form action
-  document.getElementById('editStudentForm').action = `/students/edit/${studentId}`;
-});
-
 // Handle edit form submission
 document.getElementById('editStudentForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -339,7 +337,12 @@ document.getElementById('editStudentForm').addEventListener('submit', async func
   }
   
   const formData = new FormData(this);
-  const studentId = this.action.split('/').pop();
+  const studentId = document.getElementById('editStudentIdHidden').value;
+  
+  if (!studentId) {
+    alert('Error: Student ID is missing');
+    return;
+  }
   
   try {
     const response = await fetch(`/students/edit/${studentId}`, {
@@ -350,16 +353,15 @@ document.getElementById('editStudentForm').addEventListener('submit', async func
     const result = await response.json();
     
     if (result.success) {
-      SSISApp.showToast('Success', 'Student updated successfully', 'success');
-      setTimeout(() => location.reload(), 1000);
+      alert('Student updated successfully!');
+      location.reload();
     } else {
-      SSISApp.showToast('Error', 'Failed to update student', 'error');
+      alert('Failed to update student');
     }
   } catch (error) {
-    SSISApp.showToast('Error', 'An error occurred', 'error');
+    console.error('Error:', error);
+    alert('An error occurred while updating student');
   }
-  
-  bootstrap.Modal.getInstance(this.closest('.modal')).hide();
 });
 </script>
 {% endblock %}

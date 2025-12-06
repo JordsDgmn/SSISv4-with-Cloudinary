@@ -53,13 +53,58 @@ class StudentModel:
             return f"Failed to retrieve students: {str(e)}"
 
     @classmethod
-    def delete_student(cls, id):
+    def get_student_by_id(cls, id):
+        """Get a single student by ID"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
-                cur.execute("DELETE FROM student WHERE id = %s", (id,))
-            return "Student deleted successfully"
+                cur.execute("""
+                    SELECT student.id, student.firstname, student.lastname,
+                        student.program_code, student.year, student.gender,
+                        student.profile_pic_url
+                    FROM student
+                    WHERE student.id = %s
+                """, (id,))
+                result = cur.fetchone()
+                return dict(result) if result else None
         except Exception as e:
-            return f"Failed to delete student: {str(e)}"
+            print(f"Failed to retrieve student: {str(e)}")
+            return None
+
+    @classmethod
+    def delete_student(cls, id):
+        print(f"\n=== DELETE_STUDENT MODEL METHOD ===")
+        print(f"Attempting to delete student ID: {id}")
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                # Check if student exists first
+                cur.execute("SELECT id FROM student WHERE id = %s", (id,))
+                exists = cur.fetchone()
+                
+                if not exists:
+                    print(f"ERROR: Student {id} does not exist in database")
+                    return f"Student {id} not found"
+                
+                print(f"Student exists, proceeding with deletion...")
+                
+                # Perform the deletion
+                cur.execute("DELETE FROM student WHERE id = %s", (id,))
+                deleted_count = cur.rowcount
+                
+                print(f"Rows deleted: {deleted_count}")
+                
+                if deleted_count > 0:
+                    print(f"SUCCESS: Student {id} deleted from database")
+                    return "Student deleted successfully"
+                else:
+                    print(f"WARNING: No rows were deleted")
+                    return "No student was deleted"
+                    
+        except Exception as e:
+            error_msg = f"Failed to delete student: {str(e)}"
+            print(f"ERROR: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return error_msg
 
     @classmethod
     def update_student(cls, id, firstname, lastname, program_code, year, gender):

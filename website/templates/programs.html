@@ -42,87 +42,73 @@
     </div>
   </div>
 
-  <!-- Courses Table -->
-  <div class="card-modern">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h5 class="card-title mb-0">
+  <!-- Programs Table -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">
         <i class="bi bi-table me-2"></i>Program Directory
       </h5>
-      <div class="card-actions">
-        <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('programsTable')">
-          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-        </button>
-      </div>
     </div>
-    <div class="card-body">
-      {% if programs %}
-        <div class="table-responsive">
-          <table class="table table-modern" id="programsTable">
-            <thead>
-              <tr>
-                <th>Program Code</th>
-                <th>Program Name</th>
-                <th>College Code</th>
-                <th>College Name</th>
-                <th class="text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for program in programs %}
-                <tr>
-                  <td>
-                    <span class="badge bg-primary">{{ program.program_code }}</span>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <i class="bi bi-book text-muted me-2"></i>
-                      <span class="fw-medium">{{ program.program_name }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge bg-outline-secondary">{{ program.college_code }}</span>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <i class="bi bi-building text-muted me-2"></i>
-                      <span>{{ program.college_name }}</span>
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    <div class="btn-group" role="group">
-                      <button type="button" 
-                              class="btn btn-outline-primary btn-sm edit-program" 
-                              data-course-code="{{ program.program_code }}"
-                              data-course-name="{{ program.program_name }}"
-                              data-college-code="{{ program.college_code }}"
-                              data-bs-toggle="modal"
-                              data-bs-target="#editProgramModal"
-                              title="Edit Program">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-                      <button type="button" 
-                              class="btn btn-outline-danger btn-sm delete-program" 
-                              data-program-code="{{ program.program_code }}"
-                              title="Delete Program">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="text-center py-5">
-          <i class="bi bi-book display-1 text-muted"></i>
-          <h4 class="mt-3 text-muted">No Programs Found</h4>
-          <p class="text-muted">Get started by adding your first program to the system.</p>
-          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProgramModal">
-            <i class="bi bi-plus-circle me-2"></i>Add First Program
-          </button>
-        </div>
-      {% endif %}
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table id="programsTable" class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Program Code</th>
+              <th>Program Name</th>
+              <th>College Code</th>
+              <th>College Name</th>
+              <th width="150">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for program in programs %}
+            <tr>
+              <td>
+                <span class="fw-bold font-monospace">{{ program.program_code }}</span>
+              </td>
+              <td>
+                <div>
+                  <div class="fw-semibold">{{ program.program_name }}</div>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-outline-secondary">{{ program.college_code }}</span>
+              </td>
+              <td>
+                <small class="text-muted">{{ program.college_name }}</small>
+              </td>
+              <td class="text-center">
+                <div class="btn-group" role="group">
+                  <a href="/programs/view/{{ program.program_code }}" 
+                     class="btn btn-outline-info btn-sm" 
+                     title="View Programs">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <button type="button"
+                          class="btn btn-outline-primary btn-sm edit-program" 
+                          title="Edit Program"
+                          data-bs-toggle="modal" 
+                          data-bs-target="#editProgramModal"
+                          data-program-code="{{ program.program_code }}"
+                          data-program-name="{{ program.program_name }}"
+                          data-college-code="{{ program.college_code }}">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <a href="javascript:void(0)" 
+                     class="btn btn-outline-danger btn-sm delete-program" 
+                     title="Delete Program" 
+                     data-program-code="{{ program.program_code }}"
+                     data-program-name="{{ program.program_name }}">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -209,12 +195,12 @@
               <div class="form-floating mb-3">
                 <input type="text" 
                        class="form-control" 
-                       id="editprogramCode" 
+                       id="editProgramCode" 
                        name="programCode" 
                        placeholder="Program Code"
-                       readonly>
-                <label for="editprogramCode">
-                  <i class="bi bi-hash me-2"></i>Program Code (Read-only)
+                       required>
+                <label for="editProgramCode">
+                  <i class="bi bi-hash me-2"></i>Program Code
                 </label>
               </div>
             </div>
@@ -234,11 +220,11 @@
           <div class="form-floating mb-3">
             <input type="text" 
                    class="form-control" 
-                   id="editprogramName" 
+                   id="editProgramName" 
                    name="programName" 
                    placeholder="Program Name"
                    required>
-            <label for="editprogramName">
+            <label for="editProgramName">
               <i class="bi bi-book me-2"></i>Program Name
             </label>
           </div>

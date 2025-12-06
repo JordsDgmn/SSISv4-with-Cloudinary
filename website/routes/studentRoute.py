@@ -99,19 +99,66 @@ def students():
     )
 
 def add_student():
-    id = request.form.get("studentID")
-    firstname = request.form.get("firstName")
-    lastname = request.form.get("lastName")
-    program_code = request.form.get("programCode")
-    year = request.form.get("year")
-    gender = request.form.get("gender")
+    print(f"\n{'='*80}")
+    print(f"➕ CREATE STUDENT REQUEST")
+    print(f"{'='*80}")
     
-    # Log the creation
-    log_activity("CREATE Student", f"ID={id}, Name={firstname} {lastname}, Program={program_code}, Year={year}, Gender={gender}")
-    
-    student_model.create_student(id, firstname, lastname, program_code, year, gender)
-    flash('Student created successfully', 'success')
-    return id
+    try:
+        id = request.form.get("studentID")
+        firstname = request.form.get("firstName")
+        lastname = request.form.get("lastName")
+        program_code = request.form.get("programCode")
+        year = request.form.get("year")
+        gender = request.form.get("gender")
+        
+        print(f"📊 Form data received:")
+        print(f"  Student ID: {id}")
+        print(f"  Name: {firstname} {lastname}")
+        print(f"  Program: {program_code}")
+        print(f"  Year: {year}")
+        print(f"  Gender: {gender}")
+        
+        if not all([id, firstname, lastname, program_code, year, gender]):
+            print(f"❌ ERROR: Missing required fields")
+            flash('All fields are required', 'danger')
+            return None
+        
+        print(f"\n➕ Creating student in database...")
+        result = student_model.create_student(id, firstname, lastname, program_code, year, gender)
+        print(f"📊 Create result: {result}")
+        
+        # Check if creation was successful
+        if "success" in result.lower():
+            # Log the creation
+            log_activity("CREATE Student", f"ID={id}, Name={firstname} {lastname}, Program={program_code}, Year={year}, Gender={gender}")
+            print(f"📝 Activity logged")
+            flash('Student created successfully', 'success')
+            print(f"✅ SUCCESS: Student {id} created")
+            print(f"{'='*80}\n")
+            return id
+        else:
+            # Handle error (including duplicate key)
+            if "already exists" in result.lower() or "duplicate" in result.lower():
+                flash(f'Error: Student with ID "{id}" already exists', 'danger')
+                print(f"❌ ERROR: Duplicate student ID {id}")
+            else:
+                flash(f'Error creating student: {result}', 'danger')
+                print(f"❌ ERROR: {result}")
+            print(f"{'='*80}\n")
+            return None
+        
+    except Exception as e:
+        print(f"\n{'='*80}")
+        print(f"❌ EXCEPTION OCCURRED")
+        print(f"{'='*80}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print(f"Traceback:")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*80}\n")
+        flash(f'Error creating student: {str(e)}', 'danger')
+        return None
 
 
 @studentRoute.route("/students/view/<string:student_id>", methods=["GET"])
@@ -125,33 +172,122 @@ def view_student(student_id):
 
 @studentRoute.route("/students/delete/<string:student_id>", methods=["GET", "POST", "DELETE"])
 def delete_student(student_id):
-    # Log the deletion
-    log_activity("DELETE Student", f"ID={student_id}")
+    print(f"\n{'='*80}")
+    print(f"🗑️  DELETE REQUEST RECEIVED")
+    print(f"{'='*80}")
+    print(f"📋 Student ID: {student_id}")
+    print(f"📋 Request Method: {request.method}")
+    print(f"📋 Request URL: {request.url}")
+    print(f"📋 Referrer: {request.referrer}")
+    print(f"{'='*80}\n")
     
-    result = student_model.delete_student(student_id)
-    
-    if request.method == "DELETE" or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': result == 'Student deleted successfully'})
-    else:
-        flash(result, 'success' if 'successfully' in result else 'danger')
+    try:
+        # Get student details before deletion for logging
+        print(f"🔍 Step 1: Fetching student details...")
+        student = student_model.get_student_by_id(student_id)
+        
+        if not student:
+            print(f"❌ ERROR: Student {student_id} not found in database!")
+            flash(f'Student {student_id} not found', 'danger')
+            print(f"🔄 Redirecting to /students\n")
+            return redirect(url_for('students.students'))
+        
+        student_name = f"{student.get('firstname', 'Unknown')} {student.get('lastname', 'Unknown')}"
+        print(f"✅ Student found: {student_name}")
+        print(f"📊 Student data: {student}")
+        
+        # Perform deletion
+        print(f"\n🗑️  Step 2: Executing deletion...")
+        result = student_model.delete_student(student_id)
+        print(f"📊 Delete result: {result}")
+        
+        # Log the deletion with details
+        if 'successfully' in result:
+            log_activity("DELETE Student", f"ID={student_id}, Name={student_name}")
+            print(f"✅ SUCCESS: Student deleted and activity logged")
+            flash(result, 'success')
+        else:
+            print(f"❌ FAILED: {result}")
+            flash(result, 'danger')
+        
+        if request.method == "DELETE" or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            print(f"📤 Returning JSON response")
+            return jsonify({'success': result == 'Student deleted successfully', 'message': result})
+        else:
+            print(f"🔄 Redirecting to /students")
+            print(f"{'='*80}\n")
+            return redirect(url_for('students.students'))
+            
+    except Exception as e:
+        print(f"\n{'='*80}")
+        print(f"❌ EXCEPTION OCCURRED")
+        print(f"{'='*80}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print(f"Traceback:")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*80}\n")
+        flash(f'Error deleting student: {str(e)}', 'danger')
         return redirect(url_for('students.students'))
 
 @studentRoute.route("/students/edit/<string:student_id>", methods=["POST"])
 def edit_student(student_id):
-    new_first_name = request.form.get("firstName")
-    new_last_name = request.form.get("lastName")
-    new_program_code = request.form.get("programCode")
-    new_year = request.form.get("year")
-    new_gender = request.form.get("gender")
-
-    # Log the edit
-    log_activity("EDIT Student", f"ID={student_id}, Name={new_first_name} {new_last_name}, Program={new_program_code}, Year={new_year}, Gender={new_gender}")
-
-    result = student_model.update_student(
-        student_id, new_first_name, new_last_name, new_program_code, new_year, new_gender
-    )
-
-    return jsonify({'success': result == 'Student updated successfully'})
+    print(f"\n{'='*80}")
+    print(f"✏️  EDIT STUDENT REQUEST")
+    print(f"{'='*80}")
+    print(f"📋 Student ID: {student_id}")
+    print(f"📋 Request Method: {request.method}")
+    print(f"{'='*80}\n")
+    
+    try:
+        new_first_name = request.form.get("firstName")
+        new_last_name = request.form.get("lastName")
+        new_program_code = request.form.get("programCode")
+        new_year = request.form.get("year")
+        new_gender = request.form.get("gender")
+        
+        print(f"📊 Form data received:")
+        print(f"  First Name: {new_first_name}")
+        print(f"  Last Name: {new_last_name}")
+        print(f"  Program: {new_program_code}")
+        print(f"  Year: {new_year}")
+        print(f"  Gender: {new_gender}")
+        
+        if not all([student_id, new_first_name, new_last_name, new_program_code, new_year, new_gender]):
+            print(f"❌ ERROR: Missing required fields")
+            return jsonify({'success': False, 'message': 'All fields are required'})
+        
+        # Log the edit
+        log_activity("EDIT Student", f"ID={student_id}, Name={new_first_name} {new_last_name}, Program={new_program_code}, Year={new_year}, Gender={new_gender}")
+        print(f"📝 Activity logged")
+        
+        print(f"\n✏️  Updating student in database...")
+        result = student_model.update_student(
+            student_id, new_first_name, new_last_name, new_program_code, new_year, new_gender
+        )
+        print(f"📊 Update result: {result}")
+        
+        if 'successfully' in result.lower():
+            print(f"✅ SUCCESS: Student {student_id} updated")
+            print(f"{'='*80}\n")
+            return jsonify({'success': True, 'message': result})
+        else:
+            print(f"❌ FAILED: {result}")
+            print(f"{'='*80}\n")
+            return jsonify({'success': False, 'message': result})
+            
+    except Exception as e:
+        print(f"\n{'='*80}")
+        print(f"❌ EXCEPTION OCCURRED")
+        print(f"{'='*80}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print(f"Traceback:")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*80}\n")
+        return jsonify({'success': False, 'message': f'Error updating student: {str(e)}'})
 
 
 
