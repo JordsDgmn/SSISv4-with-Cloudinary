@@ -13,9 +13,14 @@
         </h1>
         <p class="page-subtitle">System activity and management logs</p>
       </div>
-      <a href="/logs/download" class="btn btn-info">
-        <i class="bi bi-download me-2"></i>Download Logs
-      </a>
+      <div class="d-flex gap-2">
+        <a href="/logs/download" class="btn btn-info">
+          <i class="bi bi-download me-2"></i>Download Logs
+        </a>
+        <button type="button" class="btn btn-danger" onclick="clearLogs()">
+          <i class="bi bi-trash me-2"></i>Clear Logs
+        </button>
+      </div>
     </div>
   </div>
 
@@ -54,4 +59,28 @@
   border-bottom: none;
 }
 </style>
+
+<script>
+function clearLogs() {
+  if (confirm('Are you sure you want to clear all activity logs? This action cannot be undone.')) {
+    fetch('/logs/clear', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert('Error clearing logs: ' + data.message);
+      }
+    })
+    .catch(error => {
+      alert('Error clearing logs: ' + error);
+    });
+  }
+}
+</script>
 {% endblock %}

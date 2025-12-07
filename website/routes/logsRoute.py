@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, send_file
+from flask import Blueprint, render_template, send_file, jsonify
 import os
 
 logsRoute = Blueprint('logs', __name__)
@@ -30,3 +30,19 @@ def download_logs():
         return send_file(log_file, as_attachment=True, download_name='activity_log.txt')
     else:
         return "No logs available", 404
+
+@logsRoute.route("/logs/clear", methods=["POST"])
+def clear_logs():
+    """Clear activity logs"""
+    log_file = 'logs/activity.log'
+    
+    try:
+        if os.path.exists(log_file):
+            # Clear the file by opening in write mode
+            with open(log_file, 'w', encoding='utf-8') as f:
+                f.write('')
+            return jsonify({'success': True, 'message': 'Logs cleared successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'No logs file found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
