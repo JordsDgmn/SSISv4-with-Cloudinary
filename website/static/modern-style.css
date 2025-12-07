@@ -494,8 +494,6 @@ html:not([data-theme="dark"]) body::before {
 [data-theme="dark"] .dataTables_filter label::after {
   color: #cbd5e1;
 }
-  z-index: 1;
-}
 
 .dataTables_length select {
   padding: 0.5rem 0.75rem;
