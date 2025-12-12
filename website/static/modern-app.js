@@ -114,6 +114,17 @@ const SSISApp = {
       $('#editYear').val(data.year);
       $('#editGender').val(data.gender);
       
+      // Handle profile picture
+      if (data.profilePic) {
+        $('#editCurrentProfile').show();
+        $('#editCurrentProfileImg').attr('src', data.profilePic);
+      } else {
+        $('#editCurrentProfile').hide();
+      }
+      // Clear file input and remove checkbox
+      $('#editProfilePic').val('');
+      $('#editRemoveProfilePic').prop('checked', false);
+      
       console.log('Set program code to:', data.programCode);
       console.log('Program dropdown value after setting:', $('#editProgramCode').val());
       

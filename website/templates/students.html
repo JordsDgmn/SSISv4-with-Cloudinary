@@ -121,7 +121,8 @@
                           data-last-name="{{ student.lastname }}"
                           data-program-code="{{ student.program_code }}"
                           data-year="{{ student.year }}"
-                          data-gender="{{ student.gender }}">
+                          data-gender="{{ student.gender }}"
+                          data-profile-pic="{{ student.profile_pic_url or '' }}">
                     <i class="bi bi-pencil"></i>
                   </button>
                   <a href="javascript:void(0)" 
@@ -317,6 +318,30 @@
               <option value="Female">Female</option>
             </select>
           </div>
+          
+          <!-- Profile Picture Upload -->
+          <div class="mb-3">
+            <label for="editProfilePic" class="form-label">
+              <i class="bi bi-image me-1"></i>Profile Picture (Optional)
+            </label>
+            <div class="current-profile mb-3" id="editCurrentProfile" style="display: none;">
+              <label class="text-muted small">Current Profile Picture:</label>
+              <div class="d-flex align-items-center gap-3">
+                <img id="editCurrentProfileImg" src="" alt="Current Profile" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border-color);">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editRemoveProfilePic" name="removeProfilePic">
+                  <label class="form-check-label text-danger" for="editRemoveProfilePic">
+                    <i class="bi bi-trash me-1"></i>Remove current picture
+                  </label>
+                </div>
+              </div>
+            </div>
+            <input type="file" class="form-control" id="editProfilePic" name="file" accept="image/*">
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Supported formats: JPG, PNG, GIF, WebP (Max 5MB). Leave empty to keep current picture.
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -347,6 +372,18 @@ document.getElementById('editStudentForm').addEventListener('submit', async func
   if (!studentId) {
     alert('Error: Student ID is missing');
     return;
+  }
+  
+  // Add file if selected
+  const fileInput = document.getElementById('editProfilePic');
+  if (fileInput.files.length > 0) {
+    formData.append('file', fileInput.files[0]);
+  }
+  
+  // Add remove flag if checked
+  const removeCheckbox = document.getElementById('editRemoveProfilePic');
+  if (removeCheckbox && removeCheckbox.checked) {
+    formData.append('removeProfilePic', 'true');
   }
   
   try {

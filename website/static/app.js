@@ -170,24 +170,46 @@ $(document).ready(function() {
             const studentID = button.getAttribute('data-student-id');
             const firstName = button.getAttribute('data-first-name');
             const lastName = button.getAttribute('data-last-name');
-            const courseCode = button.getAttribute('data-course-code');
+            const programCode = button.getAttribute('data-program-code');
             const year = button.getAttribute('data-year');
             const gender = button.getAttribute('data-gender');
+            const profilePic = button.getAttribute('data-profile-pic');
 
             // Populate the edit form fields
-            const editStudentIDField = document.getElementById('editStudentID');
+            const editStudentIdField = document.getElementById('editStudentId');
+            const editStudentIdHiddenField = document.getElementById('editStudentIdHidden');
             const editFirstNameField = document.getElementById('editFirstName');
             const editLastNameField = document.getElementById('editLastName');
-            const editCourseField = document.getElementById('editCourse');
+            const editProgramCodeField = document.getElementById('editProgramCode');
             const editYearField = document.getElementById('editYear');
             const editGenderField = document.getElementById('editGender');
 
-            editStudentIDField.value = studentID;
+            editStudentIdField.value = studentID;
+            editStudentIdHiddenField.value = studentID;
             editFirstNameField.value = firstName;
             editLastNameField.value = lastName;
-            editCourseField.value = courseCode;
+            editProgramCodeField.value = programCode;
             editYearField.value = year;
             editGenderField.value = gender;
+            
+            // Handle profile picture display
+            const currentProfileDiv = document.getElementById('editCurrentProfile');
+            const currentProfileImg = document.getElementById('editCurrentProfileImg');
+            const removeCheckbox = document.getElementById('editRemoveProfilePic');
+            const fileInput = document.getElementById('editProfilePic');
+            
+            if (profilePic && profilePic !== '' && profilePic !== 'None') {
+                currentProfileDiv.style.display = 'block';
+                currentProfileImg.src = profilePic;
+                removeCheckbox.checked = false;
+            } else {
+                currentProfileDiv.style.display = 'none';
+            }
+            
+            // Clear file input
+            if (fileInput) {
+                fileInput.value = '';
+            }
         });
     });
 
@@ -305,45 +327,67 @@ $(document).ready(function() {
         var studentId = $(this).data("student-id");
         var firstName = $(this).data("first-name");
         var lastName = $(this).data("last-name");
-        var courseCode = $(this).data("course-code");
+        var programCode = $(this).data("program-code");
         var year = $(this).data("year");
         var gender = $(this).data("gender");
+        var profilePic = $(this).data("profile-pic");
     
-        $("#editStudentID").val(studentId);
+        $("#editStudentId").val(studentId);
+        $("#editStudentIdHidden").val(studentId);
         $("#editFirstName").val(firstName);
         $("#editLastName").val(lastName);
-        $("#editCourseCode").val(courseCode);
+        $("#editProgramCode").val(programCode);
         $("#editYear").val(year);
         $("#editGender").val(gender);
+        
+        // Handle profile picture display
+        if (profilePic && profilePic !== '' && profilePic !== 'None') {
+            $("#editCurrentProfile").show();
+            $("#editCurrentProfileImg").attr('src', profilePic);
+            $("#editRemoveProfilePic").prop('checked', false);
+        } else {
+            $("#editCurrentProfile").hide();
+        }
+        
+        // Clear file input
+        $("#editProfilePic").val('');
     });
     
     $("#editStudentForm").submit(function (e) {
         e.preventDefault();
-        var studentId = $("#editStudentID").val();
-        var newFirstName = $("#editFirstName").val();
-        var newLastName = $("#editLastName").val();
-        var newCourseCode = $("#editCourseCode").val();
-        var newYear = $("#editYear").val();
-        var newGender = $("#editGender").val();
+        
+        var formData = new FormData(this);
+        var studentId = $("#editStudentIdHidden").val();
+        
+        // Add file if selected
+        var fileInput = document.getElementById('editProfilePic');
+        if (fileInput && fileInput.files.length > 0) {
+            formData.append('file', fileInput.files[0]);
+        }
+        
+        // Add remove flag if checked
+        var removeCheckbox = document.getElementById('editRemoveProfilePic');
+        if (removeCheckbox && removeCheckbox.checked) {
+            formData.append('removeProfilePic', 'true');
+        }
     
         $.ajax({
             type: "POST",
             url: `/students/edit/${studentId}`,
-            data: {
-                firstName: newFirstName,
-                lastName: newLastName,
-                courseCode: newCourseCode,
-                year: newYear,
-                gender: newGender
-            },
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function (response) {
                 if (response.success) {
                     alert("Student updated successfully");
                     window.location.reload();
                 } else {
-                    alert("Failed to update student");
+                    alert("Failed to update student: " + (response.message || ''));
                 }
             },
+            error: function(xhr, status, error) {
+                alert("Error updating student: " + error);
+            }
         });
     });
   });

@@ -32,6 +32,24 @@ MAX_FILE_SIZE_MB = 5  # Maximum allowed file size in megabytes
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_public_id_from_url(cloudinary_url):
+    """Extract Cloudinary public_id from URL"""
+    try:
+        # Extract the part after /upload/ and before the file extension
+        # Example: https://res.cloudinary.com/demo/image/upload/v1234567890/sample.jpg
+        # Result: v1234567890/sample
+        parts = cloudinary_url.split('/upload/')
+        if len(parts) > 1:
+            # Get everything after /upload/ and remove file extension
+            return parts[1].rsplit('.', 1)[0]
+        else:
+            # Fallback: just get the filename without extension
+            return cloudinary_url.split('/')[-1].split('.')[0]
+    except Exception as e:
+        print(f"Error extracting public_id: {e}")
+        # Fallback method
+        return cloudinary_url.split('/')[-1].split('.')[0]
+
 @studentRoute.route("/students", methods=["GET", "POST"])
 def students():
     has_prev = False
@@ -161,10 +179,13 @@ def view_student(student_id):
         flash(f'Student with ID "{student_id}" not found', 'danger')
         return redirect(url_for('students.students'))
     
+    # Get all programs for the edit modal dropdown
+    programs = program_model.get_programs()
+    
     # Log the view
     log_activity("VIEW Student", f"ID={student_id}, Name={student['firstname']} {student['lastname']}")
     
-    return render_template('student_view.html', student=student)
+    return render_template('student_view.html', student=student, programs=programs)
 
 
 @studentRoute.route("/students/delete/<string:student_id>", methods=["GET", "POST", "DELETE"])
@@ -255,6 +276,62 @@ def edit_student(student_id):
             print(f"❌ ERROR: Missing required fields")
             return jsonify({'success': False, 'message': 'All fields are required'})
         
+        # Handle profile picture update
+        profile_file = request.files.get("file")
+        remove_profile_pic = request.form.get("removeProfilePic") == "true"
+        
+        # Get current profile picture URL for cleanup
+        current_pic_url = student_model.get_student_profile_pic_url(student_id)
+        
+        if remove_profile_pic and current_pic_url:
+            # User wants to remove the profile picture
+            print(f"🗑️  Removing profile picture from Cloudinary...")
+            try:
+                public_id = get_public_id_from_url(current_pic_url)
+                cloudinary_destroy(public_id)
+                print(f"✅ Profile picture removed from Cloudinary")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not delete from Cloudinary: {e}")
+            
+            # Remove from database
+            student_model.update_student_profile_pic(student_id, None)
+            print(f"✅ Profile picture removed from database")
+            
+        elif profile_file and allowed_file(profile_file.filename):
+            # User is uploading a new profile picture
+            print(f"📷 Processing new profile picture: {profile_file.filename}")
+            
+            # Check file size
+            profile_file.seek(0, os.SEEK_END)
+            file_size = profile_file.tell()
+            profile_file.seek(0)
+            
+            max_size_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+            
+            if file_size > max_size_bytes:
+                print(f"❌ File too large: {file_size} bytes")
+                return jsonify({'success': False, 'message': f'File size exceeds {MAX_FILE_SIZE_MB}MB limit'})
+            
+            # Delete old picture from Cloudinary if exists
+            if current_pic_url:
+                print(f"🗑️  Deleting old profile picture from Cloudinary...")
+                try:
+                    public_id = get_public_id_from_url(current_pic_url)
+                    cloudinary_destroy(public_id)
+                    print(f"✅ Old profile picture deleted from Cloudinary")
+                except Exception as e:
+                    print(f"⚠️  Warning: Could not delete old picture: {e}")
+            
+            # Upload new picture to Cloudinary
+            print(f"☁️  Uploading new profile picture to Cloudinary...")
+            upload_result = cloudinary.uploader.upload(profile_file)
+            new_pic_url = upload_result['url']
+            print(f"✅ New profile picture uploaded: {new_pic_url}")
+            
+            # Update database with new URL
+            student_model.update_student_profile_pic(student_id, new_pic_url)
+            print(f"✅ Database updated with new profile picture URL")
+        
         # Log the edit
         log_activity("EDIT Student", f"ID={student_id}, Name={new_first_name} {new_last_name}, Program={new_program_code}, Year={new_year}, Gender={new_gender}")
         print(f"📝 Activity logged")
@@ -298,13 +375,13 @@ def update_profile_pic():
         max_size_bytes = MAX_FILE_SIZE_MB * 1024 * 1024  # Convert MB to bytes
         if 'file' in request.files:
             file = request.files['file']
-            if file and file.content_length > max_size_bytes:
-                abort(400, {'error': 'File size exceeds the maximum allowed (5MB)'})
+            if file and file.content_length and file.content_length > max_size_bytes:
+                return jsonify({'error': f'File size exceeds the maximum allowed ({MAX_FILE_SIZE_MB}MB)'}), 400
 
         # Delete existing profile picture from Cloudinary
         existing_profile_pic_url = student_model.get_student_profile_pic_url(student_id)
         if existing_profile_pic_url:
-            public_id = existing_profile_pic_url.split('/')[-1].split('.')[0]
+            public_id = get_public_id_from_url(existing_profile_pic_url)
             deletion_response = cloudinary_destroy(public_id)
             print(deletion_response)
 
