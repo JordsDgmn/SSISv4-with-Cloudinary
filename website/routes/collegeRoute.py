@@ -71,6 +71,9 @@ def colleges():
             traceback.print_exc()
             print(f"{'='*80}\n")
             flash(f'Error creating college: {str(e)}', 'danger')
+        
+        # Redirect to prevent form resubmission
+        return redirect(url_for('college.colleges'))
     
     search_query = request.args.get("search")
     
@@ -210,7 +213,7 @@ def view_college(college_code):
         return redirect(url_for('college.colleges'))
     
     # Get all programs under this college
-    programs = college_model.get_college_programs(college_code)
+    college_programs = college_model.get_college_programs(college_code)
     
     # Get all students in this college (across all programs)
     students = student_model.get_students_by_college(college_code)
@@ -223,8 +226,17 @@ def view_college(college_code):
             students_by_program[prog_code] = []
         students_by_program[prog_code].append(student)
     
-    # Log the view
-    log_activity("VIEW College", f"Code={college_code}, Name={college['name']}, Programs={len(programs)}, Students={len(students)}")
+    # Get ALL programs and colleges for edit modal dropdowns
+    all_programs = program_model.get_programs()
+    all_colleges = college_model.get_colleges()
     
-    return render_template('college_view.html', college=college, programs=programs, students_by_program=students_by_program)
+    # Log the view
+    log_activity("VIEW College", f"Code={college_code}, Name={college['name']}, Programs={len(college_programs)}, Students={len(students)}")
+    
+    return render_template('college_view.html', 
+                         college=college, 
+                         programs=college_programs,  # Programs under this college
+                         students_by_program=students_by_program,
+                         all_programs=all_programs,  # ALL programs for student edit dropdown
+                         colleges=all_colleges)  # ALL colleges for program edit dropdown
 

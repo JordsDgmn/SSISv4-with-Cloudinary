@@ -28,9 +28,10 @@
                 class="btn btn-outline-primary btn-sm edit-program" 
                 data-bs-toggle="modal" 
                 data-bs-target="#editProgramModal"
-                data-program-code="{{ program.program_code }}"
-                data-program-name="{{ program.program_name }}"
-                data-college-code="{{ program.college_code }}">
+                data-program-id="{{ program.program_id }}"
+                data-program-code="{{ program.code }}"
+                data-program-name="{{ program.name }}"
+                data-college-id="{{ program.college_id if program.college_id else '' }}">
           <i class="bi bi-pencil me-1"></i>Edit Program
         </button>
       </div>
@@ -39,17 +40,21 @@
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="text-muted small">Program Code</label>
-          <p class="fw-bold font-monospace" style="color: var(--text-primary);">{{ program.program_code }}</p>
+          <p class="fw-bold font-monospace" style="color: var(--text-primary);">{{ program.code }}</p>
         </div>
         <div class="col-md-6 mb-3">
           <label class="text-muted small">Program Name</label>
-          <p class="fw-semibold" style="color: var(--text-primary);">{{ program.program_name }}</p>
+          <p class="fw-semibold" style="color: var(--text-primary);">{{ program.name }}</p>
         </div>
         <div class="col-md-6 mb-0">
           <label class="text-muted small">College</label>
           <p class="fw-semibold" style="color: var(--text-primary);">
-            {{ program.college_name }}
-            <span class="text-muted">({{ program.college_code }})</span>
+            {% if program.college_id %}
+              {{ program.college_name }}
+              <span class="text-muted">({{ program.college_code }})</span>
+            {% else %}
+              <span class="text-muted">No College</span>
+            {% endif %}
           </p>
         </div>
         <div class="col-md-6 mb-0">
@@ -86,8 +91,8 @@
             <tr>
               <td>
                 <div class="profile-pic-container">
-                  {% if student.profile_pic_url %}
-                    <img src="{{ student.profile_pic_url }}" alt="Profile" class="profile-pic">
+                  {% if student.profile_pic %}
+                    <img src="{{ student.profile_pic }}" alt="Profile" class="profile-pic">
                   {% else %}
                     <i class="bi bi-person profile-placeholder"></i>
                   {% endif %}
@@ -123,7 +128,7 @@
                           data-student-id="{{ student.id }}"
                           data-first-name="{{ student.firstname }}"
                           data-last-name="{{ student.lastname }}"
-                          data-program-code="{{ student.program_code }}"
+                          data-program-id="{{ student.program_id if student.program_id else '' }}"
                           data-year="{{ student.year }}"
                           data-gender="{{ student.gender }}">
                     <i class="bi bi-pencil"></i>
@@ -178,5 +183,138 @@ $(document).ready(function() {
   });
 });
 </script>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Student</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editStudentForm" class="needs-validation" novalidate>
+        <input type="hidden" id="editStudentIdHidden" name="studentID">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editStudentId" class="form-label text-muted"><i class="bi bi-lock-fill me-1"></i>Student ID (Cannot be changed)</label>
+                <input type="text" class="form-control-plaintext bg-light text-muted px-3 py-2 rounded" id="editStudentId" readonly style="border: 1px solid var(--border-color); cursor: not-allowed;">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editFirstName" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="editFirstName" name="firstName" required>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editLastName" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="editLastName" name="lastName" required>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editProgramId" class="form-label">Program</label>
+                <select class="form-select" id="editProgramId" name="programId">
+                  <option value="">No Program</option>
+                  {% for prog in programs %}
+                  <option value="{{ prog.program_id }}">{{ prog.name }} ({{ prog.code }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editYear" class="form-label">Year Level</label>
+                <select class="form-select" id="editYear" name="year" required>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                  <option value="5th Year">5th Year</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editGender" class="form-label">Gender</label>
+            <select class="form-select" id="editGender" name="gender" required>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="editProfilePic" class="form-label"><i class="bi bi-image me-1"></i>Profile Picture (Optional)</label>
+            <div class="current-profile mb-3" id="editCurrentProfile" style="display: none;">
+              <label class="text-muted small">Current Profile Picture:</label>
+              <div class="d-flex align-items-center gap-3">
+                <img id="editCurrentProfileImg" src="" alt="Current Profile" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border-color);">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editRemoveProfilePic" name="removeProfilePic">
+                  <label class="form-check-label text-danger" for="editRemoveProfilePic"><i class="bi bi-trash me-1"></i>Remove current picture</label>
+                </div>
+              </div>
+            </div>
+            <input type="file" class="form-control" id="editProfilePic" name="file" accept="image/*">
+            <div class="form-text"><i class="bi bi-info-circle me-1"></i>Max 5MB</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Update Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Program Modal -->
+<div class="modal fade" id="editProgramModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form id="editProgramForm" method="POST">
+      <div class="modal-content border-0">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Program</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="editProgramCode" name="programCode" placeholder="Program Code" required>
+                <label for="editProgramCode"><i class="bi bi-tag-fill me-1"></i>Program Code</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating mb-3">
+                <select class="form-select" id="editCollegeCode" name="collegeId">
+                  <option value="">No College</option>
+                  {% for college in colleges %}
+                  <option value="{{ college.college_id }}">{{ college.name }} ({{ college.code }})</option>
+                  {% endfor %}
+                </select>
+                <label for="editCollegeCode"><i class="bi bi-building me-2"></i>College</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="editProgramName" name="programName" placeholder="Program Name" required>
+            <label for="editProgramName"><i class="bi bi-mortarboard-fill me-1"></i>Program Name</label>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-info"><i class="bi bi-check-circle me-2"></i>Update Program</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
 {% endblock %}

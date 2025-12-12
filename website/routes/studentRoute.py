@@ -26,8 +26,8 @@ student_model = StudentModel()
 program_model = ProgramModel()
 college_model = CollegeModel()
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-MAX_FILE_SIZE_MB = 5  # Maximum allowed file size in megabytes
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}  # Restricted to PNG and JPEG only
+MAX_FILE_SIZE_MB = 2  # Maximum allowed file size: 2 megabytes (2048 KB)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -83,10 +83,8 @@ def students():
         else:
             flash('Invalid file type. Please upload a valid file.', 'danger')
 
-
-
-
-        
+        # Redirect to prevent form resubmission
+        return redirect(url_for('students.students'))
 
     search_query = request.args.get("search")
 

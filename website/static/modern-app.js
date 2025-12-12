@@ -17,15 +17,12 @@ const SSISApp = {
         zeroRecords: "No matching records found",
         emptyTable: "No data available in table"
       },
-      dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"f><"d-flex align-items-center"l>>rtip',
+      dom: '<"row mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
       columnDefs: [
         { orderable: false, targets: -1 } // Disable sorting on Actions column
       ],
-      order: [[0, 'asc']], // Default sort by first column
-      drawCallback: function() {
-        // Re-bind event handlers after table redraw
-        SSISApp.bindEventHandlers();
-      }
+      order: [[0, 'asc']] // Default sort by first column
+      // drawCallback removed - handlers use event delegation and don't need rebinding
     }
   },
 
@@ -37,6 +34,7 @@ const SSISApp = {
     this.bindEventHandlers();
     this.initFormValidation();
     this.showWelcomeMessage();
+    this.checkUrlForMessages(); // Check for success/error messages in URL
     console.log('SSISApp initialized successfully');
   },
 
@@ -102,17 +100,18 @@ const SSISApp = {
     console.log('Binding student handlers...');
     
     // Edit student - use event delegation on document
-    $(document).off('click', '.edit-student').on('click', '.edit-student', function() {
+    $(document).on('click', '.edit-student', function() {
       const data = $(this).data();
       console.log('Edit student clicked, data:', data);
       
-      $('#editStudentId').val(data.studentId);
-      $('#editStudentIdHidden').val(data.studentId);
-      $('#editFirstName').val(data.firstName);
-      $('#editLastName').val(data.lastName);
-      $('#editProgramCode').val(data.programId || '');  // Use program ID
-      $('#editYear').val(data.year);
-      $('#editGender').val(data.gender);
+      // Pre-fill ALL fields with existing data
+      $('#editStudentId').val(data.studentId || '');
+      $('#editStudentIdHidden').val(data.studentId || '');
+      $('#editFirstName').val(data.firstName || '');
+      $('#editLastName').val(data.lastName || '');
+      $('#editProgramId').val(data.programId || '');  // Use program ID
+      $('#editYear').val(data.year || '1st Year');
+      $('#editGender').val(data.gender || '');
       
       // Handle profile picture
       if (data.profilePic) {
@@ -125,15 +124,21 @@ const SSISApp = {
       $('#editProfilePic').val('');
       $('#editRemoveProfilePic').prop('checked', false);
       
-      console.log('Set program ID to:', data.programId);
-      console.log('Program dropdown value after setting:', $('#editProgramCode').val());
+      console.log('✅ All fields pre-filled:', {
+        id: data.studentId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        programId: data.programId,
+        year: data.year,
+        gender: data.gender
+      });
       
       // Set form action
       $('#editStudentForm').attr('action', `/students/edit/${data.studentId}`);
     });
     
     // Handle student edit form submission with AJAX
-    $('#editStudentForm').off('submit').on('submit', function(e) {
+    $('#editStudentForm').on('submit', function(e) {
       e.preventDefault();
       
       const form = $(this);
@@ -175,41 +180,29 @@ const SSISApp = {
     });
 
     // Delete student - use event delegation on document
-    $(document).off('click', '.delete-student').on('click', '.delete-student', function(e) {
+    $(document).on('click', '.delete-student', function(e) {
       e.preventDefault();
       e.stopPropagation();
       
-      // If the click was on the icon, get the parent button's data
-      const $button = $(e.target).hasClass('delete-student') ? $(e.target) : $(e.target).closest('.delete-student');
-      const studentId = $button.data('student-id');
-      const studentName = $button.data('student-name');
+      // Get data from the button
+      const studentId = $(this).data('student-id');
+      const studentName = $(this).data('student-name');
       
       console.log('=== DELETE BUTTON CLICKED ===');
-      console.log('Target element:', e.target.tagName, e.target.className);
-      console.log('Button element:', $button[0]);
       console.log('Student ID:', studentId);
       console.log('Student Name:', studentName);
       
       if (!studentId) {
         console.error('❌ ERROR: Student ID is missing!');
-        console.log('Button HTML:', $button[0].outerHTML);
         alert('ERROR: Student ID is missing!');
         return;
       }
       
-      console.log('📋 Showing confirmation dialog...');
       if (confirm(`Are you sure you want to delete ${studentName} (ID: ${studentId})?\n\nThis action cannot be undone.`)) {
         console.log('✅ User confirmed deletion');
         const deleteUrl = `/students/delete/${studentId}`;
-        console.log('🔄 Initiating DELETE request to:', deleteUrl);
-        console.log('⏳ Redirecting... (server will handle the deletion)');
-        
-        try {
-          window.location.href = deleteUrl;
-        } catch (error) {
-          console.error('❌ Error during redirect:', error);
-          alert('Error: Could not redirect to delete page');
-        }
+        console.log('🔄 Redirecting to:', deleteUrl);
+        window.location.href = deleteUrl;
       } else {
         console.log('❌ User cancelled deletion');
       }
@@ -247,7 +240,7 @@ const SSISApp = {
     console.log('Binding program/course handlers...');
     
     // Edit program
-    $(document).off('click', '.edit-program').on('click', '.edit-program', function() {
+    $(document).on('click', '.edit-program', function() {
       const data = $(this).data();
       const programId = data.programId;
       const programCode = data.programCode || data.courseCode;
@@ -269,7 +262,7 @@ const SSISApp = {
     });
     
     // Handle program edit form submission with AJAX
-    $('#editProgramForm').off('submit').on('submit', function(e) {
+    $('#editProgramForm').on('submit', function(e) {
       e.preventDefault();
       
       const form = $(this);
@@ -311,7 +304,7 @@ const SSISApp = {
     });
     
     // Edit course (legacy support)
-    $(document).off('click', '.edit-course').on('click', '.edit-course', function() {
+    $(document).on('click', '.edit-course', function() {
       const data = $(this).data();
       $('#editProgramId').val(data.programId);
       $('#editCourseCode').val(data.courseCode);
@@ -323,66 +316,32 @@ const SSISApp = {
     });
 
     // Delete program/course
-    $(document).off('click', '.delete-course, .delete-program').on('click', '.delete-course, .delete-program', function(e) {
+    $(document).on('click', '.delete-course, .delete-program', function(e) {
       e.preventDefault();
       e.stopPropagation();
       
-      // If the click was on the icon, get the parent button's data
-      const $button = $(e.target).hasClass('delete-program') || $(e.target).hasClass('delete-course') 
-        ? $(e.target) 
-        : $(e.target).closest('.delete-program, .delete-course');
+      const programId = $(this).data('program-id');
+      const programCode = $(this).data('program-code') || $(this).data('course-code');
+      const programName = $(this).data('program-name') || $(this).data('course-name');
       
-      const programId = $button.data('program-id');
-      const programCode = $button.data('program-code') || $button.data('course-code');
-      const programName = $button.data('program-name') || $button.data('course-name');
-      
-      console.log('='.repeat(80));
-      console.log('🗑️  DELETE PROGRAM BUTTON CLICKED');
-      console.log('='.repeat(80));
-      console.log('Target element:', e.target.tagName, e.target.className);
-      console.log('Button element:', $button[0]);
+      console.log('=== DELETE PROGRAM CLICKED ===');
       console.log('Program ID:', programId);
       console.log('Program Code:', programCode);
       console.log('Program Name:', programName);
       
       if (!programId) {
         console.error('❌ ERROR: Program ID is missing!');
-        console.log('Button HTML:', $button[0].outerHTML);
         alert('ERROR: Program ID is missing!');
         return;
       }
       
-      console.log('📋 Showing confirmation dialog...');
-      if (confirm(`Are you sure you want to delete program ${programName} (${programCode})?\n\nStudents in this program will become orphaned (No Program).\nThis action cannot be undone.`)) {
+      if (confirm(`Are you sure you want to delete program ${programName} (${programCode})?\n\nStudents in this program will become orphaned.\nThis action cannot be undone.`)) {
         console.log('✅ User confirmed deletion');
         const deleteUrl = `/programs/delete/${programId}`;
-        console.log('🔄 Initiating DELETE request to:', deleteUrl);
-        console.log('⏳ Sending AJAX DELETE request...');
-        console.log('='.repeat(80));
-        
-        // Use AJAX for deletion
-        $.ajax({
-          url: deleteUrl,
-          type: 'DELETE',
-          success: function(response) {
-            console.log('Delete response:', response);
-            if (response.success) {
-              window.location.reload();
-            } else {
-              alert('Error: ' + (response.message || 'Failed to delete program'));
-            }
-          },
-          error: function() {
-            alert('Error: Failed to delete program');
-          }
-        });
-        } catch (error) {
-          console.error('❌ Error during redirect:', error);
-          alert('Error: Could not redirect to delete page');
-        }
+        console.log('🔄 Redirecting to:', deleteUrl);
+        window.location.href = deleteUrl;
       } else {
         console.log('❌ User cancelled deletion');
-        console.log('='.repeat(80));
       }
     });
     
@@ -394,7 +353,7 @@ const SSISApp = {
     console.log('Binding college handlers...');
     
     // Edit college
-    $(document).off('click', '.edit-college').on('click', '.edit-college', function() {
+    $(document).on('click', '.edit-college', function() {
       const data = $(this).data();
       const collegeId = data.collegeId;
       const collegeCode = data.collegeCode;
@@ -415,7 +374,7 @@ const SSISApp = {
     });
     
     // Handle college edit form submission with AJAX
-    $('#editCollegeForm').off('submit').on('submit', function(e) {
+    $('#editCollegeForm').on('submit', function(e) {
       e.preventDefault();
       
       const form = $(this);
@@ -457,49 +416,32 @@ const SSISApp = {
     });
 
     // Delete college
-    $(document).off('click', '.delete-college').on('click', '.delete-college', function(e) {
+    $(document).on('click', '.delete-college', function(e) {
       e.preventDefault();
       e.stopPropagation();
       
-      // If the click was on the icon, get the parent button's data
-      const $button = $(e.target).hasClass('delete-college') ? $(e.target) : $(e.target).closest('.delete-college');
-      const collegeId = $button.data('college-id');
-      const collegeCode = $button.data('college-code');
-      const collegeName = $button.data('college-name');
+      const collegeId = $(this).data('college-id');
+      const collegeCode = $(this).data('college-code');
+      const collegeName = $(this).data('college-name');
       
-      console.log('='.repeat(80));
-      console.log('🗑️  DELETE COLLEGE BUTTON CLICKED');
-      console.log('='.repeat(80));
-      console.log('Target element:', e.target.tagName, e.target.className);
-      console.log('Button element:', $button[0]);
+      console.log('=== DELETE COLLEGE CLICKED ===');
       console.log('College ID:', collegeId);
       console.log('College Code:', collegeCode);
       console.log('College Name:', collegeName);
       
       if (!collegeId) {
         console.error('❌ ERROR: College ID is missing!');
-        console.log('Button HTML:', $button[0].outerHTML);
         alert('ERROR: College ID is missing!');
         return;
       }
       
-      console.log('📋 Showing confirmation dialog...');
-      if (confirm(`Are you sure you want to delete college ${collegeName} (${collegeCode})?\n\nPrograms under this college will become orphaned (No College).\nThis action cannot be undone.`)) {
+      if (confirm(`Are you sure you want to delete college ${collegeName} (${collegeCode})?\n\nPrograms in this college will become orphaned.\nThis action cannot be undone.`)) {
         console.log('✅ User confirmed deletion');
         const deleteUrl = `/colleges/delete/${collegeId}`;
-        console.log('🔄 Initiating DELETE request to:', deleteUrl);
-        console.log('⏳ Redirecting... (server will handle the deletion)');
-        console.log('='.repeat(80));
-        
-        try {
-          window.location.href = deleteUrl;
-        } catch (error) {
-          console.error('❌ Error during redirect:', error);
-          alert('Error: Could not redirect to delete page');
-        }
+        console.log('🔄 Redirecting to:', deleteUrl);
+        window.location.href = deleteUrl;
       } else {
         console.log('❌ User cancelled deletion');
-        console.log('='.repeat(80));
       }
     });
     
@@ -534,8 +476,9 @@ const SSISApp = {
     $('input[required], select[required], textarea[required]').on('blur change', function() {
       const $field = $(this);
       const $formGroup = $field.closest('.form-floating, .mb-3');
+      const value = $field.val();
       
-      if (!$field[0].checkValidity() || $field.val().trim() === '') {
+      if (!$field[0].checkValidity() || (value !== null && value.trim() === '')) {
         $field.addClass('is-invalid');
         $field.removeClass('is-valid');
         
@@ -555,12 +498,13 @@ const SSISApp = {
       const form = this;
       let hasEmptyFields = false;
       
-      // Check all required fields
+      // Check all required fields (not optional ones)
       $(form).find('input[required], select[required], textarea[required]').each(function() {
         const $field = $(this);
         const value = $field.val();
         
-        if (!value || value.trim() === '') {
+        // Only validate if field is truly required and value is empty
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
           hasEmptyFields = true;
           $field.addClass('is-invalid');
           $field.removeClass('is-valid');
@@ -655,28 +599,152 @@ const SSISApp = {
     }
   },
 
-  // Image upload preview
-  previewImage(input) {
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const preview = $(input).siblings('.image-preview');
-        if (preview.length === 0) {
-          $(input).after(`<div class="image-preview mt-2">
-            <img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
-          </div>`);
-        } else {
-          preview.find('img').attr('src', e.target.result);
-        }
-      };
-      reader.readAsDataURL(input.files[0]);
+  // Check URL for success/error messages (from redirects after CRUD operations)
+  checkUrlForMessages() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const successMsg = urlParams.get('success');
+    const errorMsg = urlParams.get('error');
+    
+    if (successMsg) {
+      this.showAlert(decodeURIComponent(successMsg), 'success');
+      // Remove the parameter from URL without reloading
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
     }
+    
+    if (errorMsg) {
+      this.showAlert(decodeURIComponent(errorMsg), 'error');
+      // Remove the parameter from URL without reloading
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  },
+
+  // Show alert message in the flash container
+  showAlert(message, type = 'success') {
+    const alertClass = type === 'error' || type === 'danger' ? 'alert-danger' : 'alert-success';
+    const iconClass = type === 'error' || type === 'danger' ? 'exclamation-triangle' : 'check-circle';
+    
+    const alertHtml = `
+      <div class="alert ${alertClass} alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+    
+    $('#js-message-container').html(alertHtml);
+    
+    // Auto-dismiss after 8 seconds
+    setTimeout(() => {
+      $('#js-message-container .alert').fadeOut('slow', function() { $(this).remove(); });
+    }, 8000);
+  },
+
+  // Image upload validation and preview
+  validateAndPreviewImage(input) {
+    const file = input.files[0];
+    const $input = $(input);
+    const $errorDiv = $input.siblings('.invalid-feedback');
+    const $preview = $input.siblings('.image-preview');
+    
+    // Clear previous errors and preview
+    $input.removeClass('is-invalid');
+    $errorDiv.hide().text('');
+    $preview.remove();
+    
+    if (!file) {
+      return true; // No file selected is OK (optional field)
+    }
+    
+    // Validate file type (PNG and JPEG only)
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    const allowedExtensions = ['png', 'jpg', 'jpeg'];
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      $input.addClass('is-invalid');
+      $errorDiv.html(`
+        <i class="bi bi-exclamation-circle me-1"></i>
+        <strong>Invalid file type!</strong> Only PNG and JPEG images are allowed.
+      `).show();
+      $input.val(''); // Clear the invalid file
+      return false;
+    }
+    
+    // Validate file size (2MB = 2097152 bytes)
+    const maxSizeBytes = 2 * 1024 * 1024; // 2MB in bytes
+    const fileSizeKB = (file.size / 1024).toFixed(2);
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    
+    if (file.size > maxSizeBytes) {
+      $input.addClass('is-invalid');
+      $errorDiv.html(`
+        <i class="bi bi-exclamation-circle me-1"></i>
+        <strong>File too large!</strong> Your file is ${fileSizeMB}MB (${fileSizeKB}KB). Maximum allowed size is 2MB (2048KB).
+      `).show();
+      $input.val(''); // Clear the invalid file
+      return false;
+    }
+    
+    // File is valid - show success state and preview
+    $input.addClass('is-valid');
+    
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      $input.after(`
+        <div class="image-preview mt-2 alert alert-success p-2">
+          <div class="d-flex align-items-center gap-2">
+            <img src="${e.target.result}" class="img-thumbnail" style="max-width: 120px; max-height: 120px; object-fit: cover;">
+            <div class="flex-grow-1">
+              <div class="mb-1" style="color: #000;">
+                <i class="bi bi-check-circle me-1"></i><strong>Valid image</strong>
+              </div>
+              <small class="d-block" style="color: #000; opacity: 0.8;">${file.name}</small>
+              <small class="d-block" style="color: #000; opacity: 0.8;">${fileSizeKB}KB (${fileSizeMB}MB)</small>
+            </div>
+          </div>
+        </div>
+      `);
+    };
+    reader.readAsDataURL(file);
+    
+    return true;
   }
 };
 
-// File input change handler for image preview
+// File input change handler with validation
 $(document).on('change', 'input[type="file"][accept*="image"]', function() {
-  SSISApp.previewImage(this);
+  SSISApp.validateAndPreviewImage(this);
+});
+
+// Also validate on form submission as a final check
+$(document).on('submit', 'form:has(input[type="file"][accept*="image"])', function(e) {
+  const $fileInputs = $(this).find('input[type="file"][accept*="image"]');
+  let allValid = true;
+  
+  $fileInputs.each(function() {
+    if (this.files.length > 0) {
+      if (!SSISApp.validateAndPreviewImage(this)) {
+        allValid = false;
+      }
+    }
+  });
+  
+  if (!allValid) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Scroll to first error
+    const $firstError = $('.is-invalid').first();
+    if ($firstError.length) {
+      $firstError[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $firstError.focus();
+    }
+    
+    return false;
+  }
 });
 
 // Initialize app when DOM is loaded

@@ -77,6 +77,9 @@ def programs():
             traceback.print_exc()
             print(f"{'='*80}\n")
             flash(f'Error creating program: {str(e)}', 'danger')
+        
+        # Redirect to prevent form resubmission
+        return redirect(url_for('programs.programs'))
 
     search_query = request.args.get("search", default="")  
 
@@ -224,7 +227,11 @@ def view_program(program_id):
     # Get all students enrolled in this program
     students = student_model.get_students_by_program(program_id)
     
+    # Get all programs and colleges for edit modal dropdowns
+    programs = program_model.get_programs()
+    colleges = college_model.get_colleges()
+    
     # Log the view
     log_activity("VIEW Program", f"ID={program_id}, Code={program['code']}, Name={program['name']}, Students={len(students)}")
     
-    return render_template('program_view.html', program=program, students=students)
+    return render_template('program_view.html', program=program, students=students, programs=programs, colleges=colleges)

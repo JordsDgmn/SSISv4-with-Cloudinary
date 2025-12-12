@@ -436,12 +436,13 @@ html:not([data-theme="dark"]) body::before {
 .dataTables_filter input {
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius);
-  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
-  margin-left: 0.5rem;
+  margin-left: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary) !important;
   transition: all 0.3s ease;
+  min-width: 250px;
 }
 
 .dataTables_filter input::placeholder {
@@ -472,26 +473,28 @@ html:not([data-theme="dark"]) body::before {
 /* Add search icon to DataTables filter */
 .dataTables_filter {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dataTables_filter::before {
+  content: "\F52A";
+  font-family: "bootstrap-icons" !important;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .dataTables_filter label {
   position: relative;
   display: flex;
   align-items: center;
+  margin-bottom: 0;
+  gap: 0.5rem;
 }
 
-.dataTables_filter label::after {
-  content: "\F52A";
-  font-family: "bootstrap-icons" !important;
-  position: absolute;
-  left: 0.75rem;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  pointer-events: none;
-  z-index: 1;
-}
-
-[data-theme="dark"] .dataTables_filter label::after {
+[data-theme="dark"] .dataTables_filter::before {
   color: #cbd5e1;
 }
 

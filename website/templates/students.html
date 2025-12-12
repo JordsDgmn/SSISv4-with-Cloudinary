@@ -186,8 +186,7 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="programCode" class="form-label">Program</label>
-                <select class="form-select" id="programCode" name="programId" required>
-                  <option value="">Select a program</option>
+                <select class="form-select" id="programCode" name="programId">
                   <option value="">No Program</option>
                   {% for program in programs %}
                     <option value="{{ program.program_id }}">
@@ -195,7 +194,7 @@
                     </option>
                   {% endfor %}
                 </select>
-                <div class="invalid-feedback">Please Select a program.</div>
+                <small class="text-muted">Optional. Select a program or leave as "No Program"</small>
               </div>
             </div>
           </div>
@@ -231,8 +230,9 @@
           <div class="mb-3">
             <label for="profilePic" class="form-label">Profile Picture</label>
             <input type="file" class="form-control" id="profilePic" name="file" 
-                   accept="image/*">
-            <small class="text-muted">Optional. Accepted formats: JPG, PNG, GIF (max 5MB)</small>
+                   accept="image/png,image/jpeg,image/jpg">
+            <small class="text-muted">Optional. Accepted formats: PNG, JPEG only (max 2MB)</small>
+            <div class="invalid-feedback" id="profilePicError" style="display: none;"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -288,8 +288,8 @@
           <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
-                <label for="editProgramCode" class="form-label">Program</label>
-                <select class="form-select" id="editProgramCode" name="programId" required>
+                <label for="editProgramId" class="form-label">Program</label>
+                <select class="form-select" id="editProgramId" name="programId">
                   <option value="">No Program</option>
                   {% for program in programs %}
                     <option value="{{ program.program_id }}">
@@ -338,11 +338,12 @@
                 </div>
               </div>
             </div>
-            <input type="file" class="form-control" id="editProfilePic" name="file" accept="image/*">
+            <input type="file" class="form-control" id="editProfilePic" name="file" accept="image/png,image/jpeg,image/jpg">
             <div class="form-text">
               <i class="bi bi-info-circle me-1"></i>
-              Supported formats: JPG, PNG, GIF, WebP (Max 5MB). Leave empty to keep current picture.
+              Supported formats: PNG, JPEG only (max 2MB). Leave empty to keep current picture.
             </div>
+            <div class="invalid-feedback" id="editProfilePicError" style="display: none;"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -359,55 +360,6 @@
 
 {% block scripts %}
 <script>
-// Handle edit form submission
-document.getElementById('editStudentForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  
-  if (!this.checkValidity()) {
-    this.classList.add('was-validated');
-    return;
-  }
-  
-  const formData = new FormData(this);
-  const studentId = document.getElementById('editStudentIdHidden').value;
-  
-  if (!studentId) {
-    alert('Error: Student ID is missing');
-    return;
-  }
-  
-  // Add file if selected
-  const fileInput = document.getElementById('editProfilePic');
-  if (fileInput.files.length > 0) {
-    formData.append('file', fileInput.files[0]);
-  }
-  
-  // Add remove flag if checked
-  const removeCheckbox = document.getElementById('editRemoveProfilePic');
-  if (removeCheckbox && removeCheckbox.checked) {
-    formData.append('removeProfilePic', 'true');
-  }
-  
-  try {
-    const response = await fetch(`/students/edit/${studentId}`, {
-      method: 'POST',
-      body: formData
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert('Student updated successfully!');
-      location.reload();
-    } else {
-      alert('Failed to update student');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('An error occurred while updating student');
-  }
-});
-
 // Ensure DataTables is initialized after page load
 $(document).ready(function() {
   if (!$.fn.DataTable.isDataTable('#studentsTable')) {
