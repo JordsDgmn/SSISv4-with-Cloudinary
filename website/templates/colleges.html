@@ -250,3 +250,22 @@
 </div>
 
 {% endblock %}
+
+{% block scripts %}
+<script>
+  // Ensure DataTables is initialized after page load
+  $(document).ready(function() {
+    if (!$.fn.DataTable.isDataTable('#collegesTable')) {
+      $('#collegesTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        order: [[0, 'asc']],
+        columnDefs: [
+          { orderable: false, targets: -1 }
+        ]
+      });
+    }
+  });
+</script>
+{% endblock %}

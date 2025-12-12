@@ -12,10 +12,11 @@ class CollegeModel:
                     return {"success": False, "message": f"College code '{code}' already exists"}
                 
                 cur.execute(
-                    "INSERT INTO college (code, name) VALUES (%s, %s) RETURNING college_id", 
+                    "INSERT INTO college (code, name) VALUES (%s, %s) RETURNING college_id",
                     (code, name)
                 )
-                college_id = cur.fetchone()[0]
+                result = cur.fetchone()
+                college_id = result['college_id']  # Access dict by key, not index!
                 return {"success": True, "message": "College created successfully", "college_id": college_id}
         except Exception as e:
             return {"success": False, "message": f"Failed to create college: {str(e)}"}

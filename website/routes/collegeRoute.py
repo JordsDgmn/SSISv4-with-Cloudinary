@@ -46,20 +46,17 @@ def colleges():
                 result = college_model.create_college(name, code)
                 print(f"📊 Create result: {result}")
                 
-                # Check if creation was successful
-                if "success" in result.lower():
+                # Check if creation was successful (result is now a dict)
+                if isinstance(result, dict) and result.get('success'):
                     # Log the creation
                     log_activity("CREATE College", f"Code={code}, Name={name}")
                     flash('College created successfully', 'success')
                     print(f"✅ SUCCESS: College {code} created")
                 else:
-                    # Handle error (including duplicate key)
-                    if "already exists" in result.lower() or "duplicate" in result.lower():
-                        flash(f'Error: College with code "{code}" already exists', 'danger')
-                        print(f"❌ ERROR: Duplicate college code {code}")
-                    else:
-                        flash(f'Error creating college: {result}', 'danger')
-                        print(f"❌ ERROR: {result}")
+                    # Handle error (result is a dict with message)
+                    message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+                    flash(f'Error creating college: {message}', 'danger')
+                    print(f"❌ ERROR: {message}")
             
             print(f"{'='*80}\n")
             

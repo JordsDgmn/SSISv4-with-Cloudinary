@@ -6,18 +6,35 @@ class ProgramModel:
         """Create a new program - uses college_id instead of code"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
+                print(f"🔍 Checking for duplicate code: {code}")
                 # Check for duplicate code
                 cur.execute("SELECT program_id FROM program WHERE code = %s", (code,))
                 if cur.fetchone():
+                    print(f"❌ Duplicate code found!")
                     return {"success": False, "message": f"Program code '{code}' already exists"}
                 
+                print(f"✅ No duplicate, inserting program...")
+                print(f"   Parameters: code={code}, name={name}, college_id={college_id}")
                 cur.execute(
                     "INSERT INTO program (code, name, college_id) VALUES (%s, %s, %s) RETURNING program_id", 
                     (code, name, college_id)
                 )
-                program_id = cur.fetchone()[0]
-                return {"success": True, "message": "Program created successfully", "program_id": program_id}
+                result = cur.fetchone()
+                print(f"📊 Database returned: {result}")
+                
+                if result:
+                    program_id = result['program_id']  # Access dict by key, not index!
+                    print(f"✅ Program created with ID: {program_id}")
+                    return {"success": True, "message": "Program created successfully", "program_id": program_id}
+                else:
+                    print(f"❌ No result returned from INSERT")
+                    return {"success": False, "message": "Failed to create program: No ID returned"}
         except Exception as e:
+            print(f"❌ EXCEPTION in create_program:")
+            print(f"   Type: {type(e).__name__}")
+            print(f"   Message: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {"success": False, "message": f"Failed to create program: {str(e)}"}
     
     @classmethod
