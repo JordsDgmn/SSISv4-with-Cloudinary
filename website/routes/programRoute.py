@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
 from website.models.studentModels import StudentModel
@@ -32,35 +32,37 @@ def programs():
         try:
             name = request.form.get("programName")
             code = request.form.get("programCode")
-            college_code = request.form.get("collegeCode")
+            college_id = request.form.get("collegeId")
+            
+            # Handle "No College" selection
+            if college_id == "" or college_id == "null":
+                college_id = None
+            else:
+                college_id = int(college_id) if college_id else None
             
             print(f"📊 Form data received:")
             print(f"  Program Code: {code}")
             print(f"  Program Name: {name}")
-            print(f"  College Code: {college_code}")
+            print(f"  College ID: {college_id}")
             
-            if not all([name, code, college_code]):
+            if not all([name, code]):
                 print(f"❌ ERROR: Missing required fields")
-                flash('All fields are required', 'danger')
+                flash('Program name and code are required', 'danger')
             else:
                 print(f"\n➕ Creating program in database...")
-                result = program_model.create_program(name, code, college_code)
+                result = program_model.create_program(name, code, college_id)
                 print(f"📊 Create result: {result}")
                 
                 # Check if creation was successful
-                if "success" in result.lower():
+                if isinstance(result, dict) and result.get('success'):
                     # Log the creation
-                    log_activity("CREATE Program", f"Code={code}, Name={name}, College={college_code}")
+                    log_activity("CREATE Program", f"Code={code}, Name={name}, College ID={college_id}")
                     flash('Program created successfully', 'success')
                     print(f"✅ SUCCESS: Program {code} created")
                 else:
-                    # Handle error (including duplicate key)
-                    if "already exists" in result.lower() or "duplicate" in result.lower():
-                        flash(f'Error: Program with code "{code}" already exists', 'danger')
-                        print(f"❌ ERROR: Duplicate program code {code}")
-                    else:
-                        flash(f'Error creating program: {result}', 'danger')
-                        print(f"❌ ERROR: {result}")
+                    message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+                    flash(f'Error creating program: {message}', 'danger')
+                    print(f"❌ ERROR: {message}")
             
             print(f"{'='*80}\n")
             
@@ -86,42 +88,51 @@ def programs():
     return render_template("programs.html", programs=programs, colleges=colleges, students=students, search_query=search_query)
 
 
-@programRoute.route("/programs/edit/<string:program_code>", methods=["POST"])
-def edit_program(program_code):
+@programRoute.route("/programs/edit/<int:program_id>", methods=["POST"])
+def edit_program(program_id):
     print(f"\n{'='*80}")
     print(f"✏️  EDIT PROGRAM REQUEST")
     print(f"{'='*80}")
-    print(f"📋 Program Code: {program_code}")
+    print(f"📋 Program ID: {program_id}")
     print(f"📋 Request Method: {request.method}")
     print(f"{'='*80}\n")
     
     try:
+        new_code = request.form.get("programCode")
         new_name = request.form.get("programName")
-        college_code = request.form.get("collegeCode")
+        college_id = request.form.get("collegeId")
+        
+        # Handle "No College" selection
+        if college_id == "" or college_id == "null":
+            college_id = None
+        else:
+            college_id = int(college_id) if college_id else None
         
         print(f"📊 Form data received:")
+        print(f"  Program Code: {new_code}")
         print(f"  Program Name: {new_name}")
-        print(f"  College Code: {college_code}")
+        print(f"  College ID: {college_id}")
         
-        if not all([program_code, new_name, college_code]):
+        if not all([new_code, new_name]):
             print(f"❌ ERROR: Missing required fields")
-            return jsonify({'success': False, 'message': 'All fields are required'})
+            return jsonify({'success': False, 'message': 'Program code and name are required'})
         
         print(f"\n✏️  Updating program in database...")
-        result = program_model.update_program(program_code, new_name, college_code)
+        result = program_model.update_program(program_id, new_code, new_name, college_id)
         print(f"📊 Update result: {result}")
         
-        if 'successfully' in result.lower():
+        if isinstance(result, dict) and result.get('success'):
             # Log the edit
-            log_activity("EDIT Program", f"Code={program_code}, Name={new_name}, College={college_code}")
+            log_activity("EDIT Program", f"ID={program_id}, Code={new_code}, Name={new_name}, College ID={college_id}")
             
-            print(f"✅ SUCCESS: Program {program_code} updated")
+            print(f"✅ SUCCESS: Program {program_id} updated")
             print(f"{'='*80}\n")
-            return jsonify({'success': True, 'message': result})
+            return jsonify(result)
         else:
-            print(f"❌ FAILED: {result}")
+            message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+            print(f"❌ FAILED: {message}")
             print(f"{'='*80}\n")
-            return jsonify({'success': False, 'message': result})
+            return jsonify({'success': False, 'message': message})
             
     except Exception as e:
         print(f"\n{'='*80}")
@@ -135,14 +146,12 @@ def edit_program(program_code):
         print(f"{'='*80}\n")
         return jsonify({'success': False, 'message': f'Error updating program: {str(e)}'})
 
-@programRoute.route("/programs/delete/<string:program_code>", methods=["GET", "POST", "DELETE"])
-def delete_program(program_code):
-    from flask import redirect, url_for
-    
+@programRoute.route("/programs/delete/<int:program_id>", methods=["GET", "POST", "DELETE"])
+def delete_program(program_id):
     print(f"\n{'='*80}")
     print(f"🗑️  DELETE PROGRAM REQUEST")
     print(f"{'='*80}")
-    print(f"📋 Program Code: {program_code}")
+    print(f"📋 Program ID: {program_id}")
     print(f"📋 Request Method: {request.method}")
     print(f"📋 Request URL: {request.url}")
     print(f"📋 Referrer: {request.referrer}")
@@ -151,43 +160,39 @@ def delete_program(program_code):
     try:
         # Get program info first for logging
         print(f"🔍 Step 1: Fetching program details...")
-        programs = program_model.get_programs()
-        print(f"📊 Total programs fetched: {len(programs)}")
-        if programs:
-            print(f"📊 Sample program keys: {programs[0].keys()}")
-        
-        # Use program_code key (not 'code') because get_programs() returns it as program_code
-        program = next((p for p in programs if p.get('program_code') == program_code), None)
+        program = program_model.get_program_by_id(program_id)
         
         if not program:
-            print(f"❌ ERROR: Program {program_code} not found in database!")
-            print(f"📊 Available program codes: {[p.get('program_code') for p in programs]}")
-            flash(f'Program {program_code} not found', 'danger')
+            print(f"❌ ERROR: Program ID {program_id} not found in database!")
+            flash(f'Program not found', 'danger')
             print(f"🔄 Redirecting to /programs\n")
             return redirect(url_for('programs.programs'))
         
-        program_name = program.get('program_name', 'Unknown')
-        print(f"✅ Program found: {program_name}")
+        program_name = program.get('name', 'Unknown')
+        program_code = program.get('code', 'Unknown')
+        print(f"✅ Program found: {program_name} ({program_code})")
         print(f"📊 Program data: {program}")
         
         # Perform deletion
         print(f"\n🗑️  Step 2: Executing deletion...")
-        result = program_model.delete_program(program_code)
+        result = program_model.delete_program(program_id)
         print(f"📊 Delete result: {result}")
         
-        if 'successfully' in result.lower():
+        if isinstance(result, dict) and result.get('success'):
             # Log the deletion
-            log_activity("DELETE Program", f"Code={program_code}, Name={program_name}")
+            log_activity("DELETE Program", f"ID={program_id}, Code={program_code}, Name={program_name}")
             
             print(f"✅ SUCCESS: Program {program_code} deleted")
             flash(f'Program {program_name} ({program_code}) deleted successfully', 'success')
+            message = result.get('message', 'Program deleted')
         else:
-            print(f"❌ FAILED: {result}")
-            flash(result, 'danger')
+            message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+            print(f"❌ FAILED: {message}")
+            flash(message, 'danger')
         
         if request.method == "DELETE" or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             print(f"📤 Returning JSON response")
-            return jsonify({'success': 'successfully' in result.lower(), 'message': result})
+            return jsonify(result if isinstance(result, dict) else {'success': False, 'message': str(result)})
         else:
             print(f"🔄 Redirecting to /programs")
             print(f"{'='*80}\n")
@@ -207,19 +212,19 @@ def delete_program(program_code):
         return redirect(url_for('programs.programs'))
 
 
-@programRoute.route("/programs/view/<string:program_code>", methods=["GET"])
-def view_program(program_code):
+@programRoute.route("/programs/view/<int:program_id>", methods=["GET"])
+def view_program(program_id):
     # Get program with details
-    program = program_model.get_program_with_details(program_code)
+    program = program_model.get_program_by_id(program_id)
     
     if not program:
-        flash(f'Program with code "{program_code}" not found', 'danger')
+        flash(f'Program not found', 'danger')
         return redirect(url_for('programs.programs'))
     
     # Get all students enrolled in this program
-    students = student_model.get_students_by_program(program_code)
+    students = student_model.get_students_by_program(program_id)
     
     # Log the view
-    log_activity("VIEW Program", f"Code={program_code}, Name={program['program_name']}, Students={len(students)}")
+    log_activity("VIEW Program", f"ID={program_id}, Code={program['code']}, Name={program['name']}, Students={len(students)}")
     
     return render_template('program_view.html', program=program, students=students)

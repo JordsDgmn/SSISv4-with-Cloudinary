@@ -71,8 +71,8 @@
             <tr>
               <td>
                 <div class="profile-pic-container">
-                  {% if student.profile_pic_url %}
-                    <img src="{{ student.profile_pic_url }}" alt="Profile" class="profile-pic">
+                  {% if student.profile_pic %}
+                    <img src="{{ student.profile_pic }}" alt="Profile" class="profile-pic">
                   {% else %}
                     <i class="bi bi-person profile-placeholder"></i>
                   {% endif %}
@@ -119,10 +119,10 @@
                           data-student-id="{{ student.id }}"
                           data-first-name="{{ student.firstname }}"
                           data-last-name="{{ student.lastname }}"
-                          data-program-code="{{ student.program_code }}"
+                          data-program-id="{{ student.program_id if student.program_id else '' }}"
                           data-year="{{ student.year }}"
                           data-gender="{{ student.gender }}"
-                          data-profile-pic="{{ student.profile_pic_url or '' }}">
+                          data-profile-pic="{{ student.profile_pic or '' }}">
                     <i class="bi bi-pencil"></i>
                   </button>
                   <a href="javascript:void(0)" 
@@ -186,11 +186,12 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="programCode" class="form-label">Program</label>
-                <select class="form-select" id="programCode" name="programCode" required>
+                <select class="form-select" id="programCode" name="programId" required>
                   <option value="">Select a program</option>
+                  <option value="">No Program</option>
                   {% for program in programs %}
-                    <option value="{{ program.program_code }}">
-                      {{ program.program_name }} ({{ program.program_code }})
+                    <option value="{{ program.program_id }}">
+                      {{ program.name if program.name else 'Unnamed' }} ({{ program.code if program.code else 'N/A' }})
                     </option>
                   {% endfor %}
                 </select>
@@ -288,10 +289,11 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label for="editProgramCode" class="form-label">Program</label>
-                <select class="form-select" id="editProgramCode" name="programCode" required>
+                <select class="form-select" id="editProgramCode" name="programId" required>
+                  <option value="">No Program</option>
                   {% for program in programs %}
-                    <option value="{{ program.program_code }}">
-                      {{ program.program_name }} ({{ program.program_code }})
+                    <option value="{{ program.program_id }}">
+                      {{ program.name if program.name else 'Unnamed' }} ({{ program.code if program.code else 'N/A' }})
                     </option>
                   {% endfor %}
                 </select>

@@ -81,18 +81,18 @@
             {% for program in programs %}
             <tr>
               <td>
-                <span class="badge badge-program-code">{{ program.program_code }}</span>
+                <span class="badge badge-program-code">{{ program.code }}</span>
               </td>
               <td>
-                <div class="fw-semibold">{{ program.program_name }}</div>
+                <div class="fw-semibold">{{ program.name }}</div>
               </td>
               <td>
-                {% set student_count = students_by_program.get(program.program_code, [])|length %}
+                {% set student_count = students_by_program.get(program.code, [])|length %}
                 <span class="badge bg-outline-info">{{ student_count }} students</span>
               </td>
               <td>
                 <div class="btn-group" role="group">
-                  <a href="/programs/view/{{ program.program_code }}" 
+                  <a href="/programs/view/{{ program.program_id }}" 
                      class="btn btn-outline-info btn-sm" 
                      title="View Program">
                     <i class="bi bi-eye"></i>
@@ -102,16 +102,18 @@
                           title="Edit Program"
                           data-bs-toggle="modal" 
                           data-bs-target="#editProgramModal"
-                          data-program-code="{{ program.program_code }}"
-                          data-program-name="{{ program.program_name }}"
-                          data-college-code="{{ program.college_code }}">
+                          data-program-id="{{ program.program_id }}"
+                          data-program-code="{{ program.code }}"
+                          data-program-name="{{ program.name }}"
+                          data-college-id="{{ program.college_id }}">
                     <i class="bi bi-pencil"></i>
                   </button>
                   <button type="button"
                           class="btn btn-outline-danger btn-sm delete-program"
                           title="Delete Program"
-                          data-program-code="{{ program.program_code }}"
-                          data-program-name="{{ program.program_name }}">
+                          data-program-id="{{ program.program_id }}"
+                          data-program-code="{{ program.code }}"
+                          data-program-name="{{ program.name }}">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -141,12 +143,12 @@
     </div>
     <div class="card-body">
       {% for program in programs %}
-        {% set program_students = students_by_program.get(program.program_code, []) %}
+        {% set program_students = students_by_program.get(program.code, []) %}
         {% if program_students %}
         <div class="mb-4">
           <h6 class="mb-3">
-            <span class="badge badge-program-code">{{ program.program_code }}</span>
-            {{ program.program_name }}
+            <span class="badge badge-program-code">{{ program.code }}</span>
+            {{ program.name }}
             <span class="text-muted">({{ program_students|length }} students)</span>
           </h6>
           <div class="table-responsive">

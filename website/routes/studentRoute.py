@@ -120,30 +120,36 @@ def add_student():
         # Remove ID from form - it's auto-generated now
         firstname = request.form.get("firstName")
         lastname = request.form.get("lastName")
-        program_code = request.form.get("programCode")
+        program_id = request.form.get("programId")
         year = request.form.get("year")
         gender = request.form.get("gender")
         
+        # Handle "No Program" selection
+        if program_id == "" or program_id == "null":
+            program_id = None
+        else:
+            program_id = int(program_id) if program_id else None
+        
         print(f"📊 Form data received:")
         print(f"  Name: {firstname} {lastname}")
-        print(f"  Program: {program_code}")
+        print(f"  Program ID: {program_id}")
         print(f"  Year: {year}")
         print(f"  Gender: {gender}")
         
-        if not all([firstname, lastname, program_code, year, gender]):
+        if not all([firstname, lastname, year, gender]):
             print(f"❌ ERROR: Missing required fields")
             flash('All fields are required', 'danger')
             return None
         
         print(f"\n➕ Creating student in database with auto-generated ID...")
-        result = student_model.create_student(firstname, lastname, program_code, year, gender)
+        result = student_model.create_student(firstname, lastname, program_id, year, gender)
         print(f"📊 Create result: {result}")
         
         # Check if creation was successful
         if result.get('success'):
             student_id = result.get('student_id')
             # Log the creation
-            log_activity("CREATE Student", f"ID={student_id}, Name={firstname} {lastname}, Program={program_code}, Year={year}, Gender={gender}")
+            log_activity("CREATE Student", f"ID={student_id}, Name={firstname} {lastname}, Program ID={program_id}, Year={year}, Gender={gender}")
             print(f"📝 Activity logged")
             flash(f'Student created successfully with ID: {student_id}', 'success')
             print(f"✅ SUCCESS: Student {student_id} created")
@@ -261,18 +267,24 @@ def edit_student(student_id):
     try:
         new_first_name = request.form.get("firstName")
         new_last_name = request.form.get("lastName")
-        new_program_code = request.form.get("programCode")
+        program_id = request.form.get("programId")
         new_year = request.form.get("year")
         new_gender = request.form.get("gender")
+        
+        # Handle "No Program" selection
+        if program_id == "" or program_id == "null":
+            program_id = None
+        else:
+            program_id = int(program_id) if program_id else None
         
         print(f"📊 Form data received:")
         print(f"  First Name: {new_first_name}")
         print(f"  Last Name: {new_last_name}")
-        print(f"  Program: {new_program_code}")
+        print(f"  Program ID: {program_id}")
         print(f"  Year: {new_year}")
         print(f"  Gender: {new_gender}")
         
-        if not all([student_id, new_first_name, new_last_name, new_program_code, new_year, new_gender]):
+        if not all([student_id, new_first_name, new_last_name, new_year, new_gender]):
             print(f"❌ ERROR: Missing required fields")
             return jsonify({'success': False, 'message': 'All fields are required'})
         
@@ -333,23 +345,24 @@ def edit_student(student_id):
             print(f"✅ Database updated with new profile picture URL")
         
         # Log the edit
-        log_activity("EDIT Student", f"ID={student_id}, Name={new_first_name} {new_last_name}, Program={new_program_code}, Year={new_year}, Gender={new_gender}")
+        log_activity("EDIT Student", f"ID={student_id}, Name={new_first_name} {new_last_name}, Program ID={program_id}, Year={new_year}, Gender={new_gender}")
         print(f"📝 Activity logged")
         
         print(f"\n✏️  Updating student in database...")
         result = student_model.update_student(
-            student_id, new_first_name, new_last_name, new_program_code, new_year, new_gender
+            student_id, new_first_name, new_last_name, program_id, new_year, new_gender
         )
         print(f"📊 Update result: {result}")
         
-        if 'successfully' in result.lower():
+        if isinstance(result, dict) and result.get('success'):
             print(f"✅ SUCCESS: Student {student_id} updated")
             print(f"{'='*80}\n")
-            return jsonify({'success': True, 'message': result})
+            return jsonify(result)
         else:
-            print(f"❌ FAILED: {result}")
+            message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+            print(f"❌ FAILED: {message}")
             print(f"{'='*80}\n")
-            return jsonify({'success': False, 'message': result})
+            return jsonify({'success': False, 'message': message})
             
     except Exception as e:
         print(f"\n{'='*80}")

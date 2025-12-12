@@ -110,7 +110,7 @@ const SSISApp = {
       $('#editStudentIdHidden').val(data.studentId);
       $('#editFirstName').val(data.firstName);
       $('#editLastName').val(data.lastName);
-      $('#editProgramCode').val(data.programCode);
+      $('#editProgramCode').val(data.programId || '');  // Use program ID
       $('#editYear').val(data.year);
       $('#editGender').val(data.gender);
       
@@ -125,7 +125,7 @@ const SSISApp = {
       $('#editProfilePic').val('');
       $('#editRemoveProfilePic').prop('checked', false);
       
-      console.log('Set program code to:', data.programCode);
+      console.log('Set program ID to:', data.programId);
       console.log('Program dropdown value after setting:', $('#editProgramCode').val());
       
       // Set form action
@@ -249,19 +249,20 @@ const SSISApp = {
     // Edit program
     $(document).off('click', '.edit-program').on('click', '.edit-program', function() {
       const data = $(this).data();
+      const programId = data.programId;
       const programCode = data.programCode || data.courseCode;
       const programName = data.programName || data.courseName;
-      const collegeCode = data.collegeCode;
+      const collegeId = data.collegeId;
       
-      console.log('Edit program clicked:', { programCode, programName, collegeCode });
+      console.log('Edit program clicked:', { programId, programCode, programName, collegeId });
       
       // Populate form fields with current values
       $('#editProgramCode').val(programCode);
       $('#editProgramName').val(programName);
-      $('#editCollegeCode').val(collegeCode);
+      $('#editCollegeCode').val(collegeId);
       
       // Set form action
-      $('#editProgramForm').attr('action', `/programs/edit/${programCode}`);
+      $('#editProgramForm').attr('action', `/programs/edit/${programId}`);
       
       // Store original code for validation
       $('#editProgramForm').data('original-code', programCode);
@@ -312,12 +313,13 @@ const SSISApp = {
     // Edit course (legacy support)
     $(document).off('click', '.edit-course').on('click', '.edit-course', function() {
       const data = $(this).data();
+      $('#editProgramId').val(data.programId);
       $('#editCourseCode').val(data.courseCode);
       $('#editCourseName').val(data.courseName);
-      $('#editCollegeCode').val(data.collegeCode);
+      $('#editCollegeCode').val(data.collegeId || '');
       
       // Set form action
-      $('#editCourseForm').attr('action', `/courses/edit/${data.courseCode}`);
+      $('#editCourseForm').attr('action', `/courses/edit/${data.programId}`);
     });
 
     // Delete program/course
@@ -330,6 +332,7 @@ const SSISApp = {
         ? $(e.target) 
         : $(e.target).closest('.delete-program, .delete-course');
       
+      const programId = $button.data('program-id');
       const programCode = $button.data('program-code') || $button.data('course-code');
       const programName = $button.data('program-name') || $button.data('course-name');
       
@@ -338,26 +341,41 @@ const SSISApp = {
       console.log('='.repeat(80));
       console.log('Target element:', e.target.tagName, e.target.className);
       console.log('Button element:', $button[0]);
+      console.log('Program ID:', programId);
       console.log('Program Code:', programCode);
       console.log('Program Name:', programName);
       
-      if (!programCode) {
-        console.error('❌ ERROR: Program code is missing!');
+      if (!programId) {
+        console.error('❌ ERROR: Program ID is missing!');
         console.log('Button HTML:', $button[0].outerHTML);
-        alert('ERROR: Program code is missing!');
+        alert('ERROR: Program ID is missing!');
         return;
       }
       
       console.log('📋 Showing confirmation dialog...');
-      if (confirm(`Are you sure you want to delete program ${programName} (${programCode})?\n\nThis action cannot be undone.`)) {
+      if (confirm(`Are you sure you want to delete program ${programName} (${programCode})?\n\nStudents in this program will become orphaned (No Program).\nThis action cannot be undone.`)) {
         console.log('✅ User confirmed deletion');
-        const deleteUrl = `/programs/delete/${programCode}`;
+        const deleteUrl = `/programs/delete/${programId}`;
         console.log('🔄 Initiating DELETE request to:', deleteUrl);
-        console.log('⏳ Redirecting... (server will handle the deletion)');
+        console.log('⏳ Sending AJAX DELETE request...');
         console.log('='.repeat(80));
         
-        try {
-          window.location.href = deleteUrl;
+        // Use AJAX for deletion
+        $.ajax({
+          url: deleteUrl,
+          type: 'DELETE',
+          success: function(response) {
+            console.log('Delete response:', response);
+            if (response.success) {
+              window.location.reload();
+            } else {
+              alert('Error: ' + (response.message || 'Failed to delete program'));
+            }
+          },
+          error: function() {
+            alert('Error: Failed to delete program');
+          }
+        });
         } catch (error) {
           console.error('❌ Error during redirect:', error);
           alert('Error: Could not redirect to delete page');
@@ -378,17 +396,19 @@ const SSISApp = {
     // Edit college
     $(document).off('click', '.edit-college').on('click', '.edit-college', function() {
       const data = $(this).data();
+      const collegeId = data.collegeId;
       const collegeCode = data.collegeCode;
       const collegeName = data.collegeName;
       
-      console.log('Edit college clicked:', { collegeCode, collegeName });
+      console.log('Edit college clicked:', { collegeId, collegeCode, collegeName });
       
       // Populate form fields with current values
+      $('#editCollegeId').val(collegeId);
       $('#editCollegeCode').val(collegeCode);
       $('#editCollegeName').val(collegeName);
       
       // Set form action
-      $('#editCollegeForm').attr('action', `/colleges/edit/${collegeCode}`);
+      $('#editCollegeForm').attr('action', `/colleges/edit/${collegeId}`);
       
       // Store original code for validation
       $('#editCollegeForm').data('original-code', collegeCode);
@@ -443,6 +463,7 @@ const SSISApp = {
       
       // If the click was on the icon, get the parent button's data
       const $button = $(e.target).hasClass('delete-college') ? $(e.target) : $(e.target).closest('.delete-college');
+      const collegeId = $button.data('college-id');
       const collegeCode = $button.data('college-code');
       const collegeName = $button.data('college-name');
       
@@ -451,20 +472,21 @@ const SSISApp = {
       console.log('='.repeat(80));
       console.log('Target element:', e.target.tagName, e.target.className);
       console.log('Button element:', $button[0]);
+      console.log('College ID:', collegeId);
       console.log('College Code:', collegeCode);
       console.log('College Name:', collegeName);
       
-      if (!collegeCode) {
-        console.error('❌ ERROR: College code is missing!');
+      if (!collegeId) {
+        console.error('❌ ERROR: College ID is missing!');
         console.log('Button HTML:', $button[0].outerHTML);
-        alert('ERROR: College code is missing!');
+        alert('ERROR: College ID is missing!');
         return;
       }
       
       console.log('📋 Showing confirmation dialog...');
-      if (confirm(`Are you sure you want to delete college ${collegeName} (${collegeCode})?\n\nThis action cannot be undone.`)) {
+      if (confirm(`Are you sure you want to delete college ${collegeName} (${collegeCode})?\n\nPrograms under this college will become orphaned (No College).\nThis action cannot be undone.`)) {
         console.log('✅ User confirmed deletion');
-        const deleteUrl = `/colleges/delete/${collegeCode}`;
+        const deleteUrl = `/colleges/delete/${collegeId}`;
         console.log('🔄 Initiating DELETE request to:', deleteUrl);
         console.log('⏳ Redirecting... (server will handle the deletion)');
         console.log('='.repeat(80));

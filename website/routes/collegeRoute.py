@@ -87,12 +87,12 @@ def colleges():
     
     return render_template("colleges.html", colleges=colleges, programs=programs, students=students, search_query=search_query)
 
-@collegeRoute.route("/colleges/delete/<string:college_code>", methods=["GET", "POST", "DELETE"])
-def delete_college(college_code):
+@collegeRoute.route("/colleges/delete/<int:college_id>", methods=["GET", "POST", "DELETE"])
+def delete_college(college_id):
     print(f"\n{'='*80}")
     print(f"🗑️  DELETE COLLEGE REQUEST")
     print(f"{'='*80}")
-    print(f"📋 College Code: {college_code}")
+    print(f"📋 College ID: {college_id}")
     print(f"📋 Request Method: {request.method}")
     print(f"📋 Request URL: {request.url}")
     print(f"📋 Referrer: {request.referrer}")
@@ -101,37 +101,39 @@ def delete_college(college_code):
     try:
         # Get college info first for logging
         print(f"🔍 Step 1: Fetching college details...")
-        colleges = college_model.get_colleges()
-        college = next((c for c in colleges if c.get('code') == college_code), None)
+        college = college_model.get_college_by_id(college_id)
         
         if not college:
-            print(f"❌ ERROR: College {college_code} not found in database!")
-            flash(f'College {college_code} not found', 'danger')
+            print(f"❌ ERROR: College ID {college_id} not found in database!")
+            flash(f'College not found', 'danger')
             print(f"🔄 Redirecting to /colleges\n")
             return redirect(url_for('college.colleges'))
         
         college_name = college.get('name', 'Unknown')
-        print(f"✅ College found: {college_name}")
+        college_code = college.get('code', 'Unknown')
+        print(f"✅ College found: {college_name} ({college_code})")
         print(f"📊 College data: {college}")
         
         # Perform deletion
         print(f"\n🗑️  Step 2: Executing deletion...")
-        result = college_model.delete_college(college_code)
+        result = college_model.delete_college(college_id)
         print(f"📊 Delete result: {result}")
         
-        if 'successfully' in result.lower():
+        if isinstance(result, dict) and result.get('success'):
             # Log the deletion
-            log_activity("DELETE College", f"Code={college_code}, Name={college_name}")
+            log_activity("DELETE College", f"ID={college_id}, Code={college_code}, Name={college_name}")
             
             print(f"✅ SUCCESS: College {college_code} deleted")
             flash(f'College {college_name} ({college_code}) deleted successfully', 'success')
+            message = result.get('message', 'College deleted')
         else:
-            print(f"❌ FAILED: {result}")
-            flash(result, 'danger')
+            message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+            print(f"❌ FAILED: {message}")
+            flash(message, 'danger')
         
         if request.method == "DELETE" or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             print(f"📤 Returning JSON response")
-            return jsonify({'success': 'successfully' in result.lower(), 'message': result})
+            return jsonify(result if isinstance(result, dict) else {'success': False, 'message': str(result)})
         else:
             print(f"🔄 Redirecting to /colleges")
             print(f"{'='*80}\n")
@@ -150,40 +152,43 @@ def delete_college(college_code):
         flash(f'Error deleting college: {str(e)}', 'danger')
         return redirect(url_for('college.colleges'))
 
-@collegeRoute.route("/colleges/edit/<string:college_code>", methods=["POST"])
-def edit_college(college_code):
+@collegeRoute.route("/colleges/edit/<int:college_id>", methods=["POST"])
+def edit_college(college_id):
     print(f"\n{'='*80}")
     print(f"✏️  EDIT COLLEGE REQUEST")
     print(f"{'='*80}")
-    print(f"📋 College Code: {college_code}")
+    print(f"📋 College ID: {college_id}")
     print(f"📋 Request Method: {request.method}")
     print(f"{'='*80}\n")
     
     try:
+        new_code = request.form.get("collegeCode")
         new_name = request.form.get("collegeName")
         
         print(f"📊 Form data received:")
+        print(f"  College Code: {new_code}")
         print(f"  College Name: {new_name}")
         
-        if not all([college_code, new_name]):
+        if not all([new_code, new_name]):
             print(f"❌ ERROR: Missing required fields")
             return jsonify({'success': False, 'message': 'All fields are required'})
         
         print(f"\n✏️  Updating college in database...")
-        result = college_model.update_college(college_code, new_name)
+        result = college_model.update_college(college_id, new_code, new_name)
         print(f"📊 Update result: {result}")
         
-        if 'successfully' in result.lower():
+        if isinstance(result, dict) and result.get('success'):
             # Log the edit
-            log_activity("EDIT College", f"Code={college_code}, Name={new_name}")
+            log_activity("EDIT College", f"ID={college_id}, Code={new_code}, Name={new_name}")
             
-            print(f"✅ SUCCESS: College {college_code} updated")
+            print(f"✅ SUCCESS: College {college_id} updated")
             print(f"{'='*80}\n")
-            return jsonify({'success': True, 'message': result})
+            return jsonify(result)
         else:
-            print(f"❌ FAILED: {result}")
+            message = result.get('message', str(result)) if isinstance(result, dict) else str(result)
+            print(f"❌ FAILED: {message}")
             print(f"{'='*80}\n")
-            return jsonify({'success': False, 'message': result})
+            return jsonify({'success': False, 'message': message})
             
     except Exception as e:
         print(f"\n{'='*80}")

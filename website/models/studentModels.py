@@ -47,8 +47,8 @@ class StudentModel:
             return f"{year}-0001"
     
     @classmethod
-    def create_student(cls, firstname, lastname, program_code, year, gender, profile_pic_url=None):
-        """Create student with auto-generated ID"""
+    def create_student(cls, firstname, lastname, program_id, year, gender, profile_pic_url=None):
+        """Create student with auto-generated ID - uses program_id"""
         try:
             # Generate next ID
             student_id = cls.generate_next_student_id()
@@ -56,8 +56,8 @@ class StudentModel:
             
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute(
-                    "INSERT INTO student (id, firstname, lastname, program_code, year, gender, profile_pic_url) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                    (student_id, firstname, lastname, program_code, year, gender, profile_pic_url)
+                    "INSERT INTO student (id, firstname, lastname, program_id, year, gender, profile_pic) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (student_id, firstname, lastname, program_id, year, gender, profile_pic_url)
                 )
             return {"success": True, "message": "Student created successfully", "student_id": student_id}
         except Exception as e:
@@ -65,19 +65,19 @@ class StudentModel:
 
     @classmethod
     def get_all_students(cls):
-        """Fetch all students without pagination - for DataTables to handle pagination"""
+        """Fetch all students without pagination - handles NULL program_id (orphans)"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute("""
-                    SELECT student.id, student.firstname, student.lastname,
-                        student.program_code, student.year, student.gender,
-                        student.profile_pic_url,
-                        program.name AS program_name, program.code AS program_code,
-                        college.name AS college_name, college.code AS college_code
-                    FROM student
-                    INNER JOIN program ON student.program_code = program.code
-                    INNER JOIN college ON program.college_code = college.code 
-                    ORDER BY student.id ASC
+                    SELECT s.id, s.firstname, s.lastname,
+                        s.program_id, s.year, s.gender,
+                        s.profile_pic,
+                        p.program_id, p.code AS program_code, p.name AS program_name,
+                        c.college_id, c.code AS college_code, c.name AS college_name
+                    FROM student s
+                    LEFT JOIN program p ON s.program_id = p.program_id
+                    LEFT JOIN college c ON p.college_id = c.college_id 
+                    ORDER BY s.id ASC
                 """)
 
                 results = cur.fetchall()
@@ -95,15 +95,15 @@ class StudentModel:
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute("""
-                    SELECT student.id, student.firstname, student.lastname,
-                        student.program_code, student.year, student.gender,
-                        student.profile_pic_url,
-                        program.name AS program_name, program.code AS program_code,
-                        college.name AS college_name, college.code AS college_code
-                    FROM student
-                    INNER JOIN program ON student.program_code = program.code
-                    INNER JOIN college ON program.college_code = college.code 
-                    ORDER BY student.id ASC
+                    SELECT s.id, s.firstname, s.lastname,
+                        s.program_id, s.year, s.gender,
+                        s.profile_pic,
+                        p.program_id, p.code AS program_code, p.name AS program_name,
+                        c.college_id, c.code AS college_code, c.name AS college_name
+                    FROM student s
+                    LEFT JOIN program p ON s.program_id = p.program_id
+                    LEFT JOIN college c ON p.college_id = c.college_id 
+                    ORDER BY s.id ASC
                     LIMIT %s OFFSET %s
                 """, [page_size, offset])
 
@@ -133,11 +133,11 @@ class StudentModel:
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute("""
-                    SELECT student.id, student.firstname, student.lastname,
-                        student.program_code, student.year, student.gender,
-                        student.profile_pic_url
+                    SELECT id, firstname, lastname,
+                        program_id, year, gender,
+                        profile_pic
                     FROM student
-                    WHERE student.id = %s
+                    WHERE id = %s
                 """, (id,))
                 result = cur.fetchone()
                 return dict(result) if result else None
@@ -182,37 +182,39 @@ class StudentModel:
             return error_msg
 
     @classmethod
-    def update_student(cls, id, firstname, lastname, program_code, year, gender):
+    def update_student(cls, id, firstname, lastname, program_id, year, gender):
+        """Update student - uses program_id (can be NULL for orphans)"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute(
-                    "UPDATE student SET firstname = %s, lastname = %s, program_code = %s, year = %s, gender = %s WHERE id = %s", 
-                    (firstname, lastname, program_code, year, gender, id)
+                    "UPDATE student SET firstname = %s, lastname = %s, program_id = %s, year = %s, gender = %s WHERE id = %s", 
+                    (firstname, lastname, program_id, year, gender, id)
                 )
-            return "Student updated successfully"
+            return {"success": True, "message": "Student updated successfully"}
         except Exception as e:
-            return f"Failed to update student: {str(e)}"
+            return {"success": False, "message": f"Failed to update student: {str(e)}"}
 
     @classmethod
     def search_students(cls, search_query):
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 query = """
-                SELECT student.id, student.profile_pic_url, student.firstname, student.lastname, 
-                       program.code AS program_code, program.name AS program_name, student.year, student.gender, 
-                       college.code AS college_code, college.name AS college_name
-                FROM student
-                INNER JOIN program ON student.program_code = program.code
-                INNER JOIN college ON program.college_code = college.code
-                WHERE (student.id ILIKE %s
-                OR student.firstname ILIKE %s
-                OR student.lastname ILIKE %s
-                OR program.name ILIKE %s
-                OR program.code ILIKE %s
-                OR college.name ILIKE %s
-                OR college.code ILIKE %s
-                OR student.year ILIKE %s
-                OR student.gender ILIKE %s)
+                SELECT s.id, s.profile_pic, s.firstname, s.lastname, 
+                       s.program_id, s.year, s.gender,
+                       p.program_id, p.code AS program_code, p.name AS program_name,
+                       c.college_id, c.code AS college_code, c.name AS college_name
+                FROM student s
+                LEFT JOIN program p ON s.program_id = p.program_id
+                LEFT JOIN college c ON p.college_id = c.college_id
+                WHERE (s.id ILIKE %s
+                OR s.firstname ILIKE %s
+                OR s.lastname ILIKE %s
+                OR p.name ILIKE %s
+                OR p.code ILIKE %s
+                OR c.name ILIKE %s
+                OR c.code ILIKE %s
+                OR s.year ILIKE %s
+                OR s.gender ILIKE %s)
                 """
                 search_query_param = f"%{search_query}%"
                 cur.execute(query, (search_query_param,) * 9)
@@ -226,7 +228,7 @@ class StudentModel:
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute(
-                    "UPDATE student SET profile_pic_url = %s WHERE id = %s",
+                    "UPDATE student SET profile_pic = %s WHERE id = %s",
                     (profile_pic_url, student_id)
                 )
             return "Profile picture updated successfully"
@@ -237,29 +239,29 @@ class StudentModel:
     def get_student_profile_pic_url(cls, student_id):
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
-                cur.execute("SELECT profile_pic_url FROM student WHERE id = %s", (student_id,))
+                cur.execute("SELECT profile_pic FROM student WHERE id = %s", (student_id,))
                 result = cur.fetchone()
-                return result['profile_pic_url'] if result else None
+                return result['profile_pic'] if result else None
         except Exception as e:
             return None
 
     @classmethod
-    def get_students_by_program(cls, program_code):
+    def get_students_by_program(cls, program_id):
         """Get all students enrolled in a specific program"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute("""
-                    SELECT student.id, student.firstname, student.lastname,
-                        student.program_code, student.year, student.gender,
-                        student.profile_pic_url,
-                        program.name AS program_name, program.code AS program_code,
-                        college.name AS college_name, college.code AS college_code
-                    FROM student
-                    INNER JOIN program ON student.program_code = program.code
-                    INNER JOIN college ON program.college_code = college.code
-                    WHERE student.program_code = %s
-                    ORDER BY student.id ASC
-                """, (program_code,))
+                    SELECT s.id, s.firstname, s.lastname,
+                        s.program_id, s.year, s.gender,
+                        s.profile_pic,
+                        p.program_id, p.code AS program_code, p.name AS program_name,
+                        c.college_id, c.code AS college_code, c.name AS college_name
+                    FROM student s
+                    LEFT JOIN program p ON s.program_id = p.program_id
+                    LEFT JOIN college c ON p.college_id = c.college_id
+                    WHERE s.program_id = %s
+                    ORDER BY s.id ASC
+                """, (program_id,))
                 results = cur.fetchall()
                 return [dict(row) for row in results]
         except Exception as e:
@@ -267,22 +269,38 @@ class StudentModel:
             return []
 
     @classmethod
-    def get_students_by_college(cls, college_code):
+    def get_orphaned_students(cls):
+        """Get students without a program (program_id IS NULL)"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT id, firstname, lastname, year, gender, profile_pic
+                    FROM student 
+                    WHERE program_id IS NULL
+                    ORDER BY id
+                """)
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+        except Exception as e:
+            return []
+
+    @classmethod
+    def get_students_by_college(cls, college_id):
         """Get all students in programs under a specific college"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute("""
-                    SELECT student.id, student.firstname, student.lastname,
-                        student.program_code, student.year, student.gender,
-                        student.profile_pic_url,
-                        program.name AS program_name, program.code AS program_code,
-                        college.name AS college_name, college.code AS college_code
-                    FROM student
-                    INNER JOIN program ON student.program_code = program.code
-                    INNER JOIN college ON program.college_code = college.code
-                    WHERE college.code = %s
-                    ORDER BY program.code ASC, student.id ASC
-                """, (college_code,))
+                    SELECT s.id, s.firstname, s.lastname,
+                        s.program_id, s.year, s.gender,
+                        s.profile_pic,
+                        p.program_id, p.code AS program_code, p.name AS program_name,
+                        c.college_id, c.code AS college_code, c.name AS college_name
+                    FROM student s
+                    INNER JOIN program p ON s.program_id = p.program_id
+                    INNER JOIN college c ON p.college_id = c.college_id
+                    WHERE c.college_id = %s
+                    ORDER BY p.code ASC, s.id ASC
+                """, (college_id,))
                 results = cur.fetchall()
                 return [dict(row) for row in results]
         except Exception as e:
@@ -291,19 +309,19 @@ class StudentModel:
 
     @classmethod
     def get_student_with_details(cls, student_id):
-        """Get a single student with full program and college details"""
+        """Get a single student with full program and college details - handles NULL program_id"""
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
                 cur.execute("""
-                    SELECT student.id, student.firstname, student.lastname,
-                        student.program_code, student.year, student.gender,
-                        student.profile_pic_url,
-                        program.name AS program_name, program.code AS program_code,
-                        college.name AS college_name, college.code AS college_code
-                    FROM student
-                    INNER JOIN program ON student.program_code = program.code
-                    INNER JOIN college ON program.college_code = college.code
-                    WHERE student.id = %s
+                    SELECT s.id, s.firstname, s.lastname,
+                        s.program_id, s.year, s.gender,
+                        s.profile_pic,
+                        p.program_id, p.code AS program_code, p.name AS program_name,
+                        c.college_id, c.code AS college_code, c.name AS college_name
+                    FROM student s
+                    LEFT JOIN program p ON s.program_id = p.program_id
+                    LEFT JOIN college c ON p.college_id = c.college_id
+                    WHERE s.id = %s
                 """, (student_id,))
                 result = cur.fetchone()
                 return dict(result) if result else None

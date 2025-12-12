@@ -71,30 +71,31 @@
               {% for course in courses %}
                 <tr>
                   <td>
-                    <span class="badge bg-primary">{{ course.course_code }}</span>
+                    <span class="badge bg-primary">{{ course.code }}</span>
                   </td>
                   <td>
                     <div class="d-flex align-items-center">
                       <i class="bi bi-book text-muted me-2"></i>
-                      <span class="fw-medium">{{ course.course_name }}</span>
+                      <span class="fw-medium">{{ course.name }}</span>
                     </div>
                   </td>
                   <td>
-                    <span class="badge bg-outline-secondary">{{ course.college_code }}</span>
+                    <span class="badge bg-outline-secondary">{{ course.college_code if course.college_code else 'N/A' }}</span>
                   </td>
                   <td>
                     <div class="d-flex align-items-center">
                       <i class="bi bi-building text-muted me-2"></i>
-                      <span>{{ course.college_name }}</span>
+                      <span>{{ course.college_name if course.college_name else 'No College' }}</span>
                     </div>
                   </td>
                   <td class="text-center">
                     <div class="btn-group" role="group">
                       <button type="button" 
                               class="btn btn-outline-primary btn-sm edit-course" 
-                              data-course-code="{{ course.course_code }}"
-                              data-course-name="{{ course.course_name }}"
-                              data-college-code="{{ course.college_code }}"
+                              data-program-id="{{ course.program_id }}"
+                              data-course-code="{{ course.code }}"
+                              data-course-name="{{ course.name }}"
+                              data-college-id="{{ course.college_id if course.college_id else '' }}"
                               data-bs-toggle="modal"
                               data-bs-target="#editCourseModal"
                               title="Edit Course">
@@ -102,7 +103,7 @@
                       </button>
                       <button type="button" 
                               class="btn btn-outline-danger btn-sm delete-course" 
-                              data-course-code="{{ course.course_code }}"
+                              data-program-id="{{ course.program_id }}"
                               title="Delete Course">
                         <i class="bi bi-trash"></i>
                       </button>
@@ -155,10 +156,11 @@
             </div>
             <div class="col-md-6">
               <div class="form-floating mb-3">
-                <select class="form-select" id="collegeCode" name="collegeCode" required>
+                <select class="form-select" id="collegeCode" name="collegeId" required>
                   <option value="" disabled selected>Select College</option>
+                  <option value="">No College</option>
                   {% for college in colleges %}
-                  <option value="{{ college.code }}">{{ college.name }} ({{ college.code }})</option>
+                  <option value="{{ college.college_id }}">{{ college.name }} ({{ college.code }})</option>
                   {% endfor %}
                 </select>
                 <label for="collegeCode">
@@ -196,6 +198,7 @@
 <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <form id="editCourseForm" method="POST">
+      <input type="hidden" id="editProgramId" name="programId">
       <div class="modal-content border-0">
         <div class="modal-header bg-info text-white">
           <h5 class="modal-title">
@@ -212,17 +215,18 @@
                        id="editCourseCode" 
                        name="courseCode" 
                        placeholder="Course Code"
-                       readonly>
+                       required>
                 <label for="editCourseCode">
-                  <i class="bi bi-hash me-2"></i>Course Code (Read-only)
+                  <i class="bi bi-hash me-2"></i>Course Code
                 </label>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-floating mb-3">
-                <select class="form-select" id="editCollegeCode" name="collegeCode" required>
+                <select class="form-select" id="editCollegeCode" name="collegeId" required>
+                  <option value="">No College</option>
                   {% for college in colleges %}
-                  <option value="{{ college.code }}">{{ college.name }} ({{ college.code }})</option>
+                  <option value="{{ college.college_id }}">{{ college.name }} ({{ college.code }})</option>
                   {% endfor %}
                 </select>
                 <label for="editCollegeCode">
@@ -241,6 +245,10 @@
             <label for="editCourseName">
               <i class="bi bi-book me-2"></i>Course Name
             </label>
+          </div>
+          <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <div>Changing the course code will update all references. Please ensure this is intentional.</div>
           </div>
         </div>
         <div class="modal-footer border-0 pt-0">

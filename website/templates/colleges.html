@@ -85,13 +85,14 @@
                   </td>
                   <td class="text-center">
                     <div class="btn-group" role="group">
-                      <a href="/colleges/view/{{ college.code }}" 
+                      <a href="/colleges/view/{{ college.college_id }}" 
                          class="btn btn-outline-info btn-sm" 
                          title="View College">
                         <i class="bi bi-eye"></i>
                       </a>
                       <button type="button" 
                               class="btn btn-outline-primary btn-sm edit-college" 
+                              data-college-id="{{ college.college_id }}"
                               data-college-code="{{ college.code }}"
                               data-college-name="{{ college.name }}"
                               data-bs-toggle="modal"
@@ -101,6 +102,7 @@
                       </button>
                       <a href="javascript:void(0)" 
                          class="btn btn-outline-danger btn-sm delete-college" 
+                         data-college-id="{{ college.college_id }}"
                          data-college-code="{{ college.code }}"
                          data-college-name="{{ college.name }}"
                          title="Delete College">
@@ -189,6 +191,7 @@
 <div class="modal fade" id="editCollegeModal" tabindex="-1" aria-labelledby="editCollegeModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <form id="editCollegeForm" method="POST">
+      <input type="hidden" id="editCollegeId" name="collegeId">
       <div class="modal-content border-0">
         <div class="modal-header bg-info text-white">
           <h5 class="modal-title">
@@ -199,15 +202,17 @@
         <div class="modal-body p-4">
           <div class="row">
             <div class="col-md-6">
-              <div class="mb-3">
-                <label for="editCollegeCode" class="form-label text-muted">
-                  <i class="bi bi-lock-fill me-1"></i>College Code (Cannot be changed)
-                </label>
+              <div class="form-floating mb-3">
                 <input type="text" 
-                       class="form-control-plaintext bg-light text-muted px-3 py-2 rounded" 
+                       class="form-control" 
                        id="editCollegeCode" 
-                       readonly 
-                       style="border: 1px solid var(--border-color); cursor: not-allowed;">
+                       name="collegeCode"
+                       placeholder="College Code"
+                       required 
+                       maxlength="10">
+                <label for="editCollegeCode">
+                  <i class="bi bi-code-square me-2"></i>College Code
+                </label>
               </div>
             </div>
             <div class="col-md-6">
@@ -226,6 +231,8 @@
           </div>
           <div class="alert alert-warning d-flex align-items-center" role="alert">
             <i class="bi bi-exclamation-triangle me-2"></i>
+            <div>Changing the college code will update all references. Please ensure this is intentional.</div>
+          </div>
             <small>Changing the college name will affect all associated courses and students.</small>
           </div>
         </div>

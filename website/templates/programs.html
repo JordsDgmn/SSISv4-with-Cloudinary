@@ -65,26 +65,26 @@
             {% for program in programs %}
             <tr>
               <td>
-                <span class="badge badge-program-code">{{ program.program_code }}</span>
+                <span class="badge badge-program-code">{{ program.code }}</span>
               </td>
               <td>
                 <div>
-                  <div class="fw-semibold">{{ program.program_name }}</div>
+                  <div class="fw-semibold">{{ program.name }}</div>
                 </div>
               </td>
               <td>
-                <span class="badge bg-outline-secondary">{{ program.college_code }}</span>
+                <span class="badge bg-outline-secondary">{{ program.college_code if program.college_code else 'No College' }}</span>
               </td>
               <td>
-                <small class="text-muted">{{ program.college_name }}</small>
+                <small class="text-muted">{{ program.college_name if program.college_name else 'No College' }}</small>
               </td>
               <td>
-                {% set student_count = students|selectattr('program_code', 'equalto', program.program_code)|list|length if students else 0 %}
+                {% set student_count = students|selectattr('program_id', 'equalto', program.program_id)|list|length if students else 0 %}
                 <span class="badge bg-outline-info">{{ student_count }} students</span>
               </td>
               <td class="text-center">
                 <div class="btn-group" role="group">
-                  <a href="/programs/view/{{ program.program_code }}" 
+                  <a href="/programs/view/{{ program.program_id }}" 
                      class="btn btn-outline-info btn-sm" 
                      title="View Programs">
                     <i class="bi bi-eye"></i>
@@ -94,16 +94,18 @@
                           title="Edit Program"
                           data-bs-toggle="modal" 
                           data-bs-target="#editProgramModal"
-                          data-program-code="{{ program.program_code }}"
-                          data-program-name="{{ program.program_name }}"
-                          data-college-code="{{ program.college_code }}">
+                          data-program-id="{{ program.program_id }}"
+                          data-program-code="{{ program.code }}"
+                          data-program-name="{{ program.name }}"
+                          data-college-id="{{ program.college_id if program.college_id else '' }}">
                     <i class="bi bi-pencil"></i>
                   </button>
                   <a href="javascript:void(0)" 
                      class="btn btn-outline-danger btn-sm delete-program" 
                      title="Delete Program" 
-                     data-program-code="{{ program.program_code }}"
-                     data-program-name="{{ program.program_name }}">
+                     data-program-id="{{ program.program_id }}"
+                     data-program-code="{{ program.code }}"
+                     data-program-name="{{ program.name }}">
                     <i class="bi bi-trash"></i>
                   </a>
                 </div>
@@ -145,10 +147,10 @@
             </div>
             <div class="col-md-6">
               <div class="form-floating mb-3">
-                <select class="form-select" id="collegeCode" name="collegeCode" required>
-                  <option value="" disabled selected>Select College</option>
+                <select class="form-select" id="collegeCode" name="collegeId">
+                  <option value="">No College</option>
                   {% for college in colleges %}
-                  <option value="{{ college.code }}">{{ college.name }} ({{ college.code }})</option>
+                  <option value="{{ college.college_id }}">{{ college.name }} ({{ college.code }})</option>
                   {% endfor %}
                 </select>
                 <label for="collegeCode">
@@ -196,22 +198,28 @@
         <div class="modal-body p-4">
           <div class="row">
             <div class="col-md-6">
-              <div class="mb-3">
-                <label for="editProgramCode" class="form-label text-muted">
-                  <i class="bi bi-lock-fill me-1"></i>Program Code (Cannot be changed)
-                </label>
+              <div class="form-floating mb-3">
                 <input type="text" 
-                       class="form-control-plaintext bg-light text-muted px-3 py-2 rounded" 
+                       class="form-control" 
                        id="editProgramCode" 
-                       readonly 
-                       style="border: 1px solid var(--border-color); cursor: not-allowed;">
+                       name="programCode"
+                       placeholder="Program Code"
+                       required>
+                <label for="editProgramCode">
+                  <i class="bi bi-tag-fill me-1"></i>Program Code
+                </label>
+                <small class="text-warning">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Warning: Changing code is allowed but use caution
+                </small>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-floating mb-3">
-                <select class="form-select" id="editCollegeCode" name="collegeCode" required>
+                <select class="form-select" id="editCollegeCode" name="collegeId">
+                  <option value="">No College</option>
                   {% for college in colleges %}
-                  <option value="{{ college.code }}">{{ college.name }} ({{ college.code }})</option>
+                  <option value="{{ college.college_id }}">{{ college.name }} ({{ college.code }})</option>
                   {% endfor %}
                 </select>
                 <label for="editCollegeCode">
