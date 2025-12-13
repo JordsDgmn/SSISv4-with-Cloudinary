@@ -85,7 +85,7 @@
                   </td>
                   <td class="text-center">
                     <div class="btn-group" role="group">
-                      <a href="/colleges/view/{{ college.college_id }}" 
+                      <a href="/colleges/view/{{ college.code }}" 
                          class="btn btn-outline-info btn-sm" 
                          title="View College">
                         <i class="bi bi-eye"></i>
@@ -231,9 +231,10 @@
           </div>
           <div class="alert alert-warning d-flex align-items-center" role="alert">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            <div>Changing the college code will update all references. Please ensure this is intentional.</div>
-          </div>
-            <small>Changing the college name will affect all associated courses and students.</small>
+            <div>
+              <div>Changing the college code will update all references. Please ensure this is intentional.</div>
+              <small>Changing the college name will affect all associated courses and students.</small>
+            </div>
           </div>
         </div>
         <div class="modal-footer border-0 pt-0">
