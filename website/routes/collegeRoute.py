@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from website.models.collegeModels import CollegeModel
 from website.models.programModels import ProgramModel
 from website.models.studentModels import StudentModel
+from website.utils.decorators import login_required
 import os
 from datetime import datetime
 
@@ -24,6 +25,7 @@ program_model = ProgramModel()
 student_model = StudentModel()
 
 @collegeRoute.route("/colleges", methods=["GET", "POST"])
+@login_required
 def colleges():
     if request.method == "POST":
         print(f"\n{'='*80}")
@@ -88,6 +90,7 @@ def colleges():
     return render_template("colleges.html", colleges=colleges, programs=programs, students=students, search_query=search_query)
 
 @collegeRoute.route("/colleges/delete/<int:college_id>", methods=["GET", "POST", "DELETE"])
+@login_required
 def delete_college(college_id):
     print(f"\n{'='*80}")
     print(f"🗑️  DELETE COLLEGE REQUEST")
@@ -153,6 +156,7 @@ def delete_college(college_id):
         return redirect(url_for('college.colleges'))
 
 @collegeRoute.route("/colleges/edit/<int:college_id>", methods=["POST"])
+@login_required
 def edit_college(college_id):
     print(f"\n{'='*80}")
     print(f"✏️  EDIT COLLEGE REQUEST")
@@ -204,6 +208,7 @@ def edit_college(college_id):
 
 
 @collegeRoute.route("/colleges/view/<string:college_code>", methods=["GET"])
+@login_required
 def view_college(college_code):
     # Get college details
     college = college_model.get_college_with_details(college_code)

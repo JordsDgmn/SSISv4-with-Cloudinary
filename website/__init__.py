@@ -6,6 +6,7 @@ from config import Config
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from datetime import timedelta
 
 load_dotenv()
 
@@ -15,6 +16,12 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # Session configuration for authentication
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
     # Configure Cloudinary
     cloudinary.config(
@@ -27,6 +34,9 @@ def create_app():
     db.init_app(app)
 
     # Import and register blueprints here
+    from website.routes.authRoute import authRoute
+    app.register_blueprint(authRoute)
+    
     from website.routes.collegeRoute import collegeRoute
     app.register_blueprint(collegeRoute)
 

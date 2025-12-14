@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
 from website.models.studentModels import StudentModel
+from website.utils.decorators import login_required
 import os
 from datetime import datetime
 
@@ -23,6 +24,7 @@ college_model = CollegeModel()
 student_model = StudentModel()
 
 @programRoute.route("/programs", methods=["GET", "POST"])
+@login_required
 def programs():
     if request.method == "POST":
         print(f"\n{'='*80}")
@@ -92,6 +94,7 @@ def programs():
 
 
 @programRoute.route("/programs/edit/<int:program_id>", methods=["POST"])
+@login_required
 def edit_program(program_id):
     print(f"\n{'='*80}")
     print(f"✏️  EDIT PROGRAM REQUEST")
@@ -150,6 +153,7 @@ def edit_program(program_id):
         return jsonify({'success': False, 'message': f'Error updating program: {str(e)}'})
 
 @programRoute.route("/programs/delete/<int:program_id>", methods=["GET", "POST", "DELETE"])
+@login_required
 def delete_program(program_id):
     print(f"\n{'='*80}")
     print(f"🗑️  DELETE PROGRAM REQUEST")
@@ -216,6 +220,7 @@ def delete_program(program_id):
 
 
 @programRoute.route("/programs/view/<int:program_id>", methods=["GET"])
+@login_required
 def view_program(program_id):
     # Get program with details
     program = program_model.get_program_by_id(program_id)

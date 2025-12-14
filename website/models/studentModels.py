@@ -55,6 +55,11 @@ class StudentModel:
             print(f"Generated student ID: {student_id}")
             
             with DatabaseManager.get_cursor() as (cur, conn):
+                # Check if ID already exists (edge case prevention)
+                cur.execute("SELECT id FROM student WHERE id = %s", (student_id,))
+                if cur.fetchone():
+                    return {"success": False, "message": f"Student ID '{student_id}' already exists. Please try again."}
+                
                 cur.execute(
                     "INSERT INTO student (id, firstname, lastname, program_id, year, gender, profile_pic) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                     (student_id, firstname, lastname, program_id, year, gender, profile_pic_url)

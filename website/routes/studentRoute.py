@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from website.models.studentModels import StudentModel
 from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
+from website.utils.decorators import login_required
 from cloudinary.uploader import upload
 from cloudinary.utils import cloudinary_url
 from cloudinary.uploader import destroy as cloudinary_destroy
@@ -51,6 +52,7 @@ def get_public_id_from_url(cloudinary_url):
         return cloudinary_url.split('/')[-1].split('.')[0]
 
 @studentRoute.route("/students", methods=["GET", "POST"])
+@login_required
 def students():
     has_prev = False
     has_next = False
@@ -175,6 +177,7 @@ def add_student():
 
 
 @studentRoute.route("/students/view/<string:student_id>", methods=["GET"])
+@login_required
 def view_student(student_id):
     # Get student with full details
     student = student_model.get_student_with_details(student_id)
@@ -193,6 +196,7 @@ def view_student(student_id):
 
 
 @studentRoute.route("/students/delete/<string:student_id>", methods=["GET", "POST", "DELETE"])
+@login_required
 def delete_student(student_id):
     print(f"\n{'='*80}")
     print(f"🗑️  DELETE REQUEST RECEIVED")
@@ -254,6 +258,7 @@ def delete_student(student_id):
         return redirect(url_for('students.students'))
 
 @studentRoute.route("/students/edit/<string:student_id>", methods=["POST"])
+@login_required
 def edit_student(student_id):
     print(f"\n{'='*80}")
     print(f"✏️  EDIT STUDENT REQUEST")
