@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
 from website.models.studentModels import StudentModel
@@ -24,9 +24,13 @@ college_model = CollegeModel()
 student_model = StudentModel()
 
 @programRoute.route("/programs", methods=["GET", "POST"])
-@login_required
 def programs():
     if request.method == "POST":
+        # Require authentication for creating programs
+        if 'user_id' not in session:
+            flash('Please log in to add programs', 'warning')
+            return redirect(url_for('auth.login'))
+        
         print(f"\n{'='*80}")
         print(f"➕ CREATE PROGRAM REQUEST")
         print(f"{'='*80}")

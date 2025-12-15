@@ -13,9 +13,15 @@
         </h1>
         <p class="page-subtitle">Manage student records and profiles</p>
       </div>
+      {% if session.get('user_id') %}
       <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal" style="padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600;">
         <i class="bi bi-plus-circle-fill me-2" style="font-size: 1.3rem;"></i>Add New Student
       </button>
+      {% else %}
+      <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary" style="padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600;">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Login to Add
+      </a>
+      {% endif %}
     </div>
   </div>
 
@@ -63,7 +69,9 @@
               <th>College</th>
               <th width="100">Year</th>
               <th width="80">Gender</th>
+              {% if session.get('user_id') %}
               <th width="150">Actions</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -104,6 +112,7 @@
                   {{ student.gender }}
                 </span>
               </td>
+              {% if session.get('user_id') %}
               <td>
                 <div class="btn-group" role="group">
                   <a href="/students/view/{{ student.id}}" 
@@ -134,6 +143,7 @@
                   </a>
                 </div>
               </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>

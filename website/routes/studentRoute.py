@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from website.models.studentModels import StudentModel
 from website.models.programModels import ProgramModel
 from website.models.collegeModels import CollegeModel
@@ -52,7 +52,6 @@ def get_public_id_from_url(cloudinary_url):
         return cloudinary_url.split('/')[-1].split('.')[0]
 
 @studentRoute.route("/students", methods=["GET", "POST"])
-@login_required
 def students():
     has_prev = False
     has_next = False
@@ -60,6 +59,10 @@ def students():
     max_size_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
 
     if request.method == "POST":
+        # Require authentication for creating students
+        if 'user_id' not in session:
+            flash('Please log in to add students', 'warning')
+            return redirect(url_for('auth.login'))
         profile_file = request.files.get("file")
 
         if not profile_file:
