@@ -47,18 +47,14 @@ class StudentModel:
             return f"{year}-0001"
     
     @classmethod
-    def create_student(cls, firstname, lastname, program_id, year, gender, profile_pic_url=None):
-        """Create student with auto-generated ID - uses program_id"""
+    def create_student(cls, student_id, firstname, lastname, program_id, year, gender, profile_pic_url=None):
+        """Create student with provided ID - uses program_id"""
         try:
-            # Generate next ID
-            student_id = cls.generate_next_student_id()
-            print(f"Generated student ID: {student_id}")
-            
             with DatabaseManager.get_cursor() as (cur, conn):
-                # Check if ID already exists (edge case prevention)
+                # Check if ID already exists
                 cur.execute("SELECT id FROM student WHERE id = %s", (student_id,))
                 if cur.fetchone():
-                    return {"success": False, "message": f"Student ID '{student_id}' already exists. Please try again."}
+                    return {"success": False, "message": f"Student ID '{student_id}' already exists."}
                 
                 cur.execute(
                     "INSERT INTO student (id, firstname, lastname, program_id, year, gender, profile_pic) VALUES (%s, %s, %s, %s, %s, %s, %s)",
