@@ -56,6 +56,12 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('studentsTable')">
         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
       </button>
+      <button class="btn btn-outline-info btn-sm" id="toggleFilters">
+        <i class="bi bi-funnel me-1"></i>Toggle Filters
+      </button>
+      <button class="btn btn-outline-danger btn-sm" id="clearFilters">
+        <i class="bi bi-x-circle me-1"></i>Clear All Filters
+      </button>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -74,6 +80,35 @@
               {% endif %}
             </tr>
           </thead>
+          <tfoot class="filter-row" style="display: none;">
+            <tr>
+              <th></th>
+              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter ID..." data-column="1"></th>
+              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter name..." data-column="2"></th>
+              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter program..." data-column="3"></th>
+              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter college..." data-column="4"></th>
+              <th>
+                <select class="form-select form-select-sm column-filter" data-column="5">
+                  <option value="">All Years</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                  <option value="5th Year">5th Year</option>
+                </select>
+              </th>
+              <th>
+                <select class="form-select form-select-sm column-filter" data-column="6">
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </th>
+              {% if session.get('user_id') %}
+              <th></th>
+              {% endif %}
+            </tr>
+          </tfoot>
           <tbody>
             {% for student in students %}
             <tr>
@@ -165,12 +200,16 @@
       </div>
       <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
         <div class="modal-body">
-          <!-- Info Alert: Student ID Auto-Generated -->
-          <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <div>
-              <strong>Student ID will be auto-generated</strong> in format <code>YYYY-XXXX</code> (e.g., 2025-0001)
-            </div>
+          <!-- Student ID Field -->
+          <div class="mb-3">
+            <label for="studentId" class="form-label">Student ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="studentId" name="studentId" 
+                   placeholder="YYYY-XXXX (e.g., 2025-0001)" 
+                   pattern="\d{4}-\d{4}" 
+                   maxlength="9"
+                   required>
+            <small class="text-muted">Format: YYYY-XXXX (4 digits, dash, 4 digits)</small>
+            <div class="invalid-feedback">Please enter a valid student ID in format YYYY-XXXX (e.g., 2025-0001)</div>
           </div>
           
           <div class="row">
@@ -370,19 +409,41 @@
 
 {% block scripts %}
 <script>
-// Ensure DataTables is initialized after page load
 $(document).ready(function() {
   if (!$.fn.DataTable.isDataTable('#studentsTable')) {
-    $('#studentsTable').DataTable({
+    const table = $('#studentsTable').DataTable({
       responsive: true,
       pageLength: 25,
       lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-      order: [[0, 'asc']],
+      order: [[1, 'asc']], // Sort by Student ID
       columnDefs: [
-        { orderable: false, targets: -1 }
+        { orderable: false, targets: 0 }, // Photo column
+        { orderable: false, targets: -1 }  // Actions column
       ]
     });
+    
+    // Column filtering
+    $('#studentsTable tfoot .column-filter').on('keyup change', function() {
+      const columnIndex = $(this).data('column');
+      const value = this.value;
+      table.column(columnIndex).search(value).draw();
+    });
   }
+  
+  // Toggle filters button
+  $('#toggleFilters').off('click').on('click', function() {
+    $('#studentsTable tfoot').toggle();
+    $(this).toggleClass('active');
+  });
+  
+  // Clear all filters button
+  $('#clearFilters').off('click').on('click', function() {
+    if ($.fn.DataTable.isDataTable('#studentsTable')) {
+      const table = $('#studentsTable').DataTable();
+      $('#studentsTable tfoot .column-filter').val('');
+      table.columns().search('').draw();
+    }
+  });
 });
 </script>
 {% endblock %}

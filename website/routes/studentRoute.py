@@ -120,12 +120,19 @@ def add_student():
     print(f"{'='*80}")
     
     try:
-        
+        student_id = request.form.get("studentId")
         firstname = request.form.get("firstName")
         lastname = request.form.get("lastName")
         program_id = request.form.get("programId")
         year = request.form.get("year")
         gender = request.form.get("gender")
+        
+        # Validate student ID format
+        import re
+        if not student_id or not re.match(r'^\d{4}-\d{4}$', student_id):
+            print(f"❌ ERROR: Invalid student ID format: {student_id}")
+            flash('Student ID must be in format YYYY-XXXX (e.g., 2025-0001)', 'danger')
+            return None
         
         # Handle "No Program" selection
         if program_id == "" or program_id == "null":
@@ -134,23 +141,23 @@ def add_student():
             program_id = int(program_id) if program_id else None
         
         print(f"📊 Form data received:")
+        print(f"  Student ID: {student_id}")
         print(f"  Name: {firstname} {lastname}")
         print(f"  Program ID: {program_id}")
         print(f"  Year: {year}")
         print(f"  Gender: {gender}")
         
-        if not all([firstname, lastname, year, gender]):
+        if not all([student_id, firstname, lastname, year, gender]):
             print(f"❌ ERROR: Missing required fields")
             flash('All fields are required', 'danger')
             return None
         
-        print(f"\n➕ Creating student in database with auto-generated ID...")
-        result = student_model.create_student(firstname, lastname, program_id, year, gender)
+        print(f"\n➕ Creating student in database with ID: {student_id}...")
+        result = student_model.create_student(student_id, firstname, lastname, program_id, year, gender)
         print(f"📊 Create result: {result}")
         
         # Check if creation was successful
         if result.get('success'):
-            student_id = result.get('student_id')
             # Log the creation
             log_activity("CREATE Student", f"ID={student_id}, Name={firstname} {lastname}, Program ID={program_id}, Year={year}, Gender={gender}")
             print(f"📝 Activity logged")
