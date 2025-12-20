@@ -53,6 +53,12 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('programsTable')">
         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
       </button>
+      <button class="btn btn-outline-info btn-sm" id="toggleProgramFilters">
+        <i class="bi bi-funnel me-1"></i>Toggle Filters
+      </button>
+      <button class="btn btn-outline-danger btn-sm" id="clearProgramFilters">
+        <i class="bi bi-x-circle me-1"></i>Clear All Filters
+      </button>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -69,6 +75,18 @@
               {% endif %}
             </tr>
           </thead>
+          <tfoot class="program-filter-row" style="display: none;">
+            <tr>
+              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter code..." data-column="0"></th>
+              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter name..." data-column="1"></th>
+              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college..." data-column="2"></th>
+              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college name..." data-column="3"></th>
+              <th></th>
+              {% if session.get('user_id') %}
+              <th></th>
+              {% endif %}
+            </tr>
+          </tfoot>
           <tbody>
             {% for program in programs %}
             <tr>
@@ -267,10 +285,9 @@
 
 {% block scripts %}
 <script>
-  // Ensure DataTables is initialized after page load
   $(document).ready(function() {
     if (!$.fn.DataTable.isDataTable('#programsTable')) {
-      $('#programsTable').DataTable({
+      const programTable = $('#programsTable').DataTable({
         responsive: true,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
@@ -279,7 +296,29 @@
           { orderable: false, targets: -1 }
         ]
       });
+      
+      // Column filtering - bind after table initialization
+      $('#programsTable tfoot .program-column-filter').on('keyup change', function() {
+        const columnIndex = $(this).data('column');
+        const value = this.value;
+        programTable.column(columnIndex).search(value).draw();
+      });
     }
+    
+    // Toggle filters button - bind outside DataTable check
+    $('#toggleProgramFilters').off('click').on('click', function() {
+      $('#programsTable tfoot').toggle();
+      $(this).toggleClass('active');
+    });
+    
+    // Clear all filters button
+    $('#clearProgramFilters').off('click').on('click', function() {
+      if ($.fn.DataTable.isDataTable('#programsTable')) {
+        const table = $('#programsTable').DataTable();
+        $('#programsTable tfoot .program-column-filter').val('');
+        table.columns().search('').draw();
+      }
+    });
   });
 </script>
 {% endblock %}

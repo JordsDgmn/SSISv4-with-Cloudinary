@@ -54,6 +54,12 @@
         <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('collegesTable')">
           <i class="bi bi-arrow-clockwise me-1"></i>Refresh
         </button>
+        <button class="btn btn-outline-info btn-sm" id="toggleCollegeFilters">
+          <i class="bi bi-funnel me-1"></i>Toggle Filters
+        </button>
+        <button class="btn btn-outline-danger btn-sm" id="clearCollegeFilters">
+          <i class="bi bi-x-circle me-1"></i>Clear All Filters
+        </button>
       </div>
     </div>
     <div class="card-body p-0">
@@ -71,6 +77,17 @@
                 {% endif %}
               </tr>
             </thead>
+            <tfoot class="college-filter-row" style="display: none;">
+              <tr>
+                <th><input type="text" class="form-control form-control-sm college-column-filter" placeholder="Filter code..." data-column="0"></th>
+                <th><input type="text" class="form-control form-control-sm college-column-filter" placeholder="Filter name..." data-column="1"></th>
+                <th></th>
+                <th></th>
+                {% if session.get('user_id') %}
+                <th></th>
+                {% endif %}
+              </tr>
+            </tfoot>
             <tbody>
               {% for college in colleges %}
                 <tr>
@@ -264,10 +281,9 @@
 
 {% block scripts %}
 <script>
-  // Ensure DataTables is initialized after page load
   $(document).ready(function() {
     if (!$.fn.DataTable.isDataTable('#collegesTable')) {
-      $('#collegesTable').DataTable({
+      const collegeTable = $('#collegesTable').DataTable({
         responsive: true,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
@@ -276,7 +292,29 @@
           { orderable: false, targets: -1 }
         ]
       });
+      
+      // Column filtering
+      $('#collegesTable tfoot .college-column-filter').on('keyup change', function() {
+        const columnIndex = $(this).data('column');
+        const value = this.value;
+        collegeTable.column(columnIndex).search(value).draw();
+      });
     }
+    
+    // Toggle filters
+    $('#toggleCollegeFilters').off('click').on('click', function() {
+      $('#collegesTable tfoot').toggle();
+      $(this).toggleClass('active');
+    });
+    
+    // Clear all filters
+    $('#clearCollegeFilters').off('click').on('click', function() {
+      if ($.fn.DataTable.isDataTable('#collegesTable')) {
+        const table = $('#collegesTable').DataTable();
+        $('#collegesTable tfoot .college-column-filter').val('');
+        table.columns().search('').draw();
+      }
+    });
   });
 </script>
 {% endblock %}
