@@ -106,7 +106,7 @@
               <td>
                 <span class="badge year-badge">{{ student.year }}</span>
               </td>
-              <td>
+              <td data-order="{{ student.gender }}">
                 <span class="badge gender-badge-{{ student.gender.lower() }}">
                   <i class="bi bi-{{ 'person-standing' if student.gender == 'Male' else 'person-standing-dress' }} me-1"></i>
                   {{ student.gender }}

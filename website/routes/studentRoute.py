@@ -120,7 +120,7 @@ def add_student():
     print(f"{'='*80}")
     
     try:
-        # Remove ID from form - it's auto-generated now
+        
         firstname = request.form.get("firstName")
         lastname = request.form.get("lastName")
         program_id = request.form.get("programId")
