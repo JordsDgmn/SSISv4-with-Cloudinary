@@ -60,6 +60,29 @@
         <i class="bi bi-x-circle me-1"></i>Clear All Filters
       </button>
     </div>
+    
+    <!-- Filter Section -->
+    <div class="card-body border-bottom bg-light" id="programFilterSection" style="display: none;">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Program Code</label>
+          <input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter code..." data-column="0">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Program Name</label>
+          <input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter name..." data-column="1">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">College Code</label>
+          <input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college..." data-column="2">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">College Name</label>
+          <input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college name..." data-column="3">
+        </div>
+      </div>
+    </div>
+    
     <div class="card-body p-0">
       <div class="table-responsive">
         <table id="programsTable" class="table table-hover mb-0">
@@ -75,18 +98,6 @@
               {% endif %}
             </tr>
           </thead>
-          <tfoot class="program-filter-row" style="display: none;">
-            <tr>
-              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter code..." data-column="0"></th>
-              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter name..." data-column="1"></th>
-              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college..." data-column="2"></th>
-              <th><input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college name..." data-column="3"></th>
-              <th></th>
-              {% if session.get('user_id') %}
-              <th></th>
-              {% endif %}
-            </tr>
-          </tfoot>
           <tbody>
             {% for program in programs %}
             <tr>
@@ -286,39 +297,78 @@
 {% block scripts %}
 <script>
   $(document).ready(function() {
-    if (!$.fn.DataTable.isDataTable('#programsTable')) {
-      const programTable = $('#programsTable').DataTable({
-        responsive: true,
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-        order: [[0, 'asc']],
-        columnDefs: [
-          { orderable: false, targets: -1 }
-        ]
-      });
-      
-      // Column filtering - bind after table initialization
-      $('#programsTable tfoot .program-column-filter').on('keyup change', function() {
-        const columnIndex = $(this).data('column');
-        const value = this.value;
-        programTable.column(columnIndex).search(value).draw();
-      });
+    console.log('[PROGRAMS] Page loaded, jQuery version:', $.fn.jquery);
+    console.log('[PROGRAMS] DataTables available:', typeof $.fn.DataTable);
+    
+    // Destroy existing table if present
+    if ($.fn.DataTable.isDataTable('#programsTable')) {
+      console.log('[PROGRAMS] Destroying existing DataTable...');
+      $('#programsTable').DataTable().destroy();
     }
     
-    // Toggle filters button - bind outside DataTable check
-    $('#toggleProgramFilters').off('click').on('click', function() {
-      $('#programsTable tfoot').toggle();
-      $(this).toggleClass('active');
+    // Initialize DataTable fresh
+    console.log('[PROGRAMS] Initializing DataTable...');
+    const table = $('#programsTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+      order: [[0, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: -1 }
+      ],
+      processing: false,
+      serverSide: false,
+      ajax: undefined,
+      deferRender: true
+    });
+    console.log('[PROGRAMS] DataTable initialized successfully');
+    
+    // Column filtering
+    const filterInputs = $('#programFilterSection input, #programFilterSection select');
+    console.log('[PROGRAMS] Found filter inputs:', filterInputs.length);
+    
+    filterInputs.on('keyup change', function() {
+      const columnIndex = $(this).data('column');
+      const value = this.value;
+      
+      console.log('[PROGRAMS] *** FILTER APPLIED *** Column:', columnIndex, 'Value:', value);
+      
+      table.column(columnIndex).search(value).draw();
+      
+      console.log('[PROGRAMS] Table redrawn with filter');
     });
     
-    // Clear all filters button
-    $('#clearProgramFilters').off('click').on('click', function() {
-      if ($.fn.DataTable.isDataTable('#programsTable')) {
-        const table = $('#programsTable').DataTable();
-        $('#programsTable tfoot .program-column-filter').val('');
-        table.columns().search('').draw();
-      }
+    // Toggle filters
+    const toggleBtn = $('#toggleProgramFilters');
+    console.log('[PROGRAMS] Toggle button found:', toggleBtn.length);
+    
+    toggleBtn.on('click', function(e) {
+      e.preventDefault();
+      console.log('[PROGRAMS] *** TOGGLE CLICKED ***');
+      const filterSection = $('#programFilterSection');
+      const isVisible = filterSection.is(':visible');
+      console.log('[PROGRAMS] Current visibility:', isVisible);
+      
+      filterSection.slideToggle(200);
+      $(this).toggleClass('active');
+      
+      console.log('[PROGRAMS] Filter section toggled');
     });
+    
+    // Clear all filters
+    const clearBtn = $('#clearProgramFilters');
+    console.log('[PROGRAMS] Clear button found:', clearBtn.length);
+    
+    clearBtn.on('click', function(e) {
+      e.preventDefault();
+      console.log('[PROGRAMS] *** CLEAR FILTERS CLICKED ***');
+      $('#programFilterSection input').val('');
+      $('#programFilterSection select').prop('selectedIndex', 0);
+      table.columns().search('').draw();
+      console.log('[PROGRAMS] All filters cleared and table redrawn');
+    });
+    
+    console.log('[PROGRAMS] All event handlers bound');
   });
 </script>
 {% endblock %}

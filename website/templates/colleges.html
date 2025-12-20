@@ -62,6 +62,21 @@
         </button>
       </div>
     </div>
+    
+    <!-- Filter Section -->
+    <div class="card-body border-bottom bg-light" id="collegeFilterSection" style="display: none;">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label small mb-1">College Code</label>
+          <input type="text" class="form-control form-control-sm college-column-filter" placeholder="Filter code..." data-column="0">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">College Name</label>
+          <input type="text" class="form-control form-control-sm college-column-filter" placeholder="Filter name..." data-column="1">
+        </div>
+      </div>
+    </div>
+    
     <div class="card-body p-0">
       {% if colleges %}
         <div class="table-responsive">
@@ -77,17 +92,6 @@
                 {% endif %}
               </tr>
             </thead>
-            <tfoot class="college-filter-row" style="display: none;">
-              <tr>
-                <th><input type="text" class="form-control form-control-sm college-column-filter" placeholder="Filter code..." data-column="0"></th>
-                <th><input type="text" class="form-control form-control-sm college-column-filter" placeholder="Filter name..." data-column="1"></th>
-                <th></th>
-                <th></th>
-                {% if session.get('user_id') %}
-                <th></th>
-                {% endif %}
-              </tr>
-            </tfoot>
             <tbody>
               {% for college in colleges %}
                 <tr>
@@ -282,39 +286,78 @@
 {% block scripts %}
 <script>
   $(document).ready(function() {
-    if (!$.fn.DataTable.isDataTable('#collegesTable')) {
-      const collegeTable = $('#collegesTable').DataTable({
-        responsive: true,
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-        order: [[0, 'asc']],
-        columnDefs: [
-          { orderable: false, targets: -1 }
-        ]
-      });
-      
-      // Column filtering
-      $('#collegesTable tfoot .college-column-filter').on('keyup change', function() {
-        const columnIndex = $(this).data('column');
-        const value = this.value;
-        collegeTable.column(columnIndex).search(value).draw();
-      });
+    console.log('[COLLEGES] Page loaded, jQuery version:', $.fn.jquery);
+    console.log('[COLLEGES] DataTables available:', typeof $.fn.DataTable);
+    
+    // Destroy existing table if present
+    if ($.fn.DataTable.isDataTable('#collegesTable')) {
+      console.log('[COLLEGES] Destroying existing DataTable...');
+      $('#collegesTable').DataTable().destroy();
     }
     
+    // Initialize DataTable fresh
+    console.log('[COLLEGES] Initializing DataTable...');
+    const table = $('#collegesTable').DataTable({
+      responsive: true,
+      pageLength: 25,
+      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+      order: [[0, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: -1 }
+      ],
+      processing: false,
+      serverSide: false,
+      ajax: undefined,
+      deferRender: true
+    });
+    console.log('[COLLEGES] DataTable initialized successfully');
+    
+    // Column filtering
+    const filterInputs = $('#collegeFilterSection input, #collegeFilterSection select');
+    console.log('[COLLEGES] Found filter inputs:', filterInputs.length);
+    
+    filterInputs.on('keyup change', function() {
+      const columnIndex = $(this).data('column');
+      const value = this.value;
+      
+      console.log('[COLLEGES] *** FILTER APPLIED *** Column:', columnIndex, 'Value:', value);
+      
+      table.column(columnIndex).search(value).draw();
+      
+      console.log('[COLLEGES] Table redrawn with filter');
+    });
+    
     // Toggle filters
-    $('#toggleCollegeFilters').off('click').on('click', function() {
-      $('#collegesTable tfoot').toggle();
+    const toggleBtn = $('#toggleCollegeFilters');
+    console.log('[COLLEGES] Toggle button found:', toggleBtn.length);
+    
+    toggleBtn.on('click', function(e) {
+      e.preventDefault();
+      console.log('[COLLEGES] *** TOGGLE CLICKED ***');
+      const filterSection = $('#collegeFilterSection');
+      const isVisible = filterSection.is(':visible');
+      console.log('[COLLEGES] Current visibility:', isVisible);
+      
+      filterSection.slideToggle(200);
       $(this).toggleClass('active');
+      
+      console.log('[COLLEGES] Filter section toggled');
     });
     
     // Clear all filters
-    $('#clearCollegeFilters').off('click').on('click', function() {
-      if ($.fn.DataTable.isDataTable('#collegesTable')) {
-        const table = $('#collegesTable').DataTable();
-        $('#collegesTable tfoot .college-column-filter').val('');
-        table.columns().search('').draw();
-      }
+    const clearBtn = $('#clearCollegeFilters');
+    console.log('[COLLEGES] Clear button found:', clearBtn.length);
+    
+    clearBtn.on('click', function(e) {
+      e.preventDefault();
+      console.log('[COLLEGES] *** CLEAR FILTERS CLICKED ***');
+      $('#collegeFilterSection input').val('');
+      $('#collegeFilterSection select').prop('selectedIndex', 0);
+      table.columns().search('').draw();
+      console.log('[COLLEGES] All filters cleared and table redrawn');
     });
+    
+    console.log('[COLLEGES] All event handlers bound');
   });
 </script>
 {% endblock %}

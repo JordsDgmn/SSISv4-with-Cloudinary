@@ -53,16 +53,63 @@
       <h5 class="mb-0">
         <i class="bi bi-table me-2"></i>Student Records
       </h5>
-      <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('studentsTable')">
-        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-      </button>
-      <button class="btn btn-outline-info btn-sm" id="toggleFilters">
-        <i class="bi bi-funnel me-1"></i>Toggle Filters
-      </button>
-      <button class="btn btn-outline-danger btn-sm" id="clearFilters">
-        <i class="bi bi-x-circle me-1"></i>Clear All Filters
-      </button>
+      <div class="card-actions">
+        <button class="btn btn-outline-secondary btn-sm" onclick="SSISApp.refreshTable('studentsTable')">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+        <button class="btn btn-outline-info btn-sm" id="toggleFilters">
+          <i class="bi bi-funnel me-1"></i>Toggle Filters
+        </button>
+        <button class="btn btn-outline-danger btn-sm" id="clearFilters">
+          <i class="bi bi-x-circle me-1"></i>Clear All Filters
+        </button>
+      </div>
     </div>
+    
+    <!-- Filter Section -->
+    <div class="card-body border-bottom bg-light" id="filterSection" style="display: none;">
+      <div class="row g-2">
+        <div class="col-md-2">
+          <label class="form-label small mb-1">Student ID</label>
+          <input type="text" class="form-control form-control-sm column-filter" placeholder="Search ID..." data-column="1">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Name</label>
+          <input type="text" class="form-control form-control-sm column-filter" placeholder="Search name..." data-column="2">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Program</label>
+          <select class="form-select form-select-sm column-filter" data-column="3">
+            <option value="">All Programs</option>
+            {% for program in programs %}
+              <option value="{{ program.name if program.name else 'Unnamed' }} ({{ program.code if program.code else 'N/A' }})">
+                {{ program.name if program.name else 'Unnamed' }} ({{ program.code if program.code else 'N/A' }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1">Year</label>
+          <select class="form-select form-select-sm column-filter" data-column="5">
+            <option value="">All Years</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+            <option value="5th Year">5th Year</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1">Gender</label>
+          <select class="form-select form-select-sm column-filter" data-column="6">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
     <div class="card-body p-0">
       <div class="table-responsive">
         <table id="studentsTable" class="table table-hover mb-0">
@@ -80,35 +127,6 @@
               {% endif %}
             </tr>
           </thead>
-          <tfoot class="filter-row" style="display: none;">
-            <tr>
-              <th></th>
-              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter ID..." data-column="1"></th>
-              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter name..." data-column="2"></th>
-              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter program..." data-column="3"></th>
-              <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter college..." data-column="4"></th>
-              <th>
-                <select class="form-select form-select-sm column-filter" data-column="5">
-                  <option value="">All Years</option>
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                  <option value="5th Year">5th Year</option>
-                </select>
-              </th>
-              <th>
-                <select class="form-select form-select-sm column-filter" data-column="6">
-                  <option value="">All Genders</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </th>
-              {% if session.get('user_id') %}
-              <th></th>
-              {% endif %}
-            </tr>
-          </tfoot>
           <tbody>
             {% for student in students %}
             <tr>
@@ -410,40 +428,102 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-  if (!$.fn.DataTable.isDataTable('#studentsTable')) {
-    const table = $('#studentsTable').DataTable({
-      responsive: true,
-      pageLength: 25,
-      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-      order: [[1, 'asc']], // Sort by Student ID
-      columnDefs: [
-        { orderable: false, targets: 0 }, // Photo column
-        { orderable: false, targets: -1 }  // Actions column
-      ]
-    });
-    
-    // Column filtering
-    $('#studentsTable tfoot .column-filter').on('keyup change', function() {
-      const columnIndex = $(this).data('column');
-      const value = this.value;
-      table.column(columnIndex).search(value).draw();
-    });
+  console.log('[STUDENTS] Page loaded, jQuery version:', $.fn.jquery);
+  console.log('[STUDENTS] DataTables available:', typeof $.fn.DataTable);
+  
+  // Destroy existing table if present to prevent errors
+  if ($.fn.DataTable.isDataTable('#studentsTable')) {
+    console.log('[STUDENTS] Destroying existing DataTable...');
+    $('#studentsTable').DataTable().destroy();
   }
   
+  // Initialize DataTable fresh
+  console.log('[STUDENTS] Initializing DataTable...');
+  const table = $('#studentsTable').DataTable({
+    responsive: true,
+    pageLength: 25,
+    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+    order: [[1, 'asc']], // Sort by Student ID
+    columnDefs: [
+      { orderable: false, targets: 0 }, // Photo column
+      { orderable: false, targets: -1 }, // Actions column
+      { 
+        // Gender column - use data-order attribute for filtering/sorting
+        targets: 6,
+        type: 'html',
+        render: function(data, type, row) {
+          if (type === 'filter' || type === 'sort') {
+            // Extract text content only (removes HTML tags)
+            return $('<div>').html(data).text().trim();
+          }
+          return data;
+        }
+      }
+    ],
+    // Force client-side processing
+    processing: false,
+    serverSide: false,
+    // Ensure no AJAX calls
+    ajax: undefined,
+    deferRender: true
+  });
+  console.log('[STUDENTS] DataTable initialized successfully');
+  
+  // Column filtering - attach to filter section inputs
+  const filterInputs = $('#filterSection input, #filterSection select');
+  console.log('[STUDENTS] Found filter inputs:', filterInputs.length);
+  
+  filterInputs.on('keyup change', function() {
+    const columnIndex = $(this).data('column');
+    const value = this.value;
+    
+    console.log('[STUDENTS] *** FILTER APPLIED *** Column:', columnIndex, 'Value:', value);
+    
+    // For Gender (6) and Year (5) columns, use exact word matching with word boundaries
+    // For Program (3), use simple contains match (no regex needed since parentheses cause issues)
+    // For ID (1) and Name (2), use partial matching
+    if ((columnIndex == 5 || columnIndex == 6) && value !== '') {
+      // Use word boundary regex for Year and Gender only
+      table.column(columnIndex).search('\\b' + value + '\\b', true, false).draw();
+    } else {
+      // Regular search for text inputs, program dropdown, or empty dropdowns
+      table.column(columnIndex).search(value).draw();
+    }
+    
+    console.log('[STUDENTS] Table redrawn with filter');
+  });
+  
   // Toggle filters button
-  $('#toggleFilters').off('click').on('click', function() {
-    $('#studentsTable tfoot').toggle();
+  const toggleBtn = $('#toggleFilters');
+  console.log('[STUDENTS] Toggle button found:', toggleBtn.length);
+  
+  toggleBtn.on('click', function(e) {
+    e.preventDefault();
+    console.log('[STUDENTS] *** TOGGLE CLICKED ***');
+    const filterSection = $('#filterSection');
+    const isVisible = filterSection.is(':visible');
+    console.log('[STUDENTS] Current visibility:', isVisible);
+    
+    filterSection.slideToggle(200);
     $(this).toggleClass('active');
+    
+    console.log('[STUDENTS] Filter section toggled');
   });
   
   // Clear all filters button
-  $('#clearFilters').off('click').on('click', function() {
-    if ($.fn.DataTable.isDataTable('#studentsTable')) {
-      const table = $('#studentsTable').DataTable();
-      $('#studentsTable tfoot .column-filter').val('');
-      table.columns().search('').draw();
-    }
+  const clearBtn = $('#clearFilters');
+  console.log('[STUDENTS] Clear button found:', clearBtn.length);
+  
+  clearBtn.on('click', function(e) {
+    e.preventDefault();
+    console.log('[STUDENTS] *** CLEAR FILTERS CLICKED ***');
+    $('#filterSection input').val('');
+    $('#filterSection select').prop('selectedIndex', 0);
+    table.columns().search('').draw();
+    console.log('[STUDENTS] All filters cleared and table redrawn');
   });
+  
+  console.log('[STUDENTS] All event handlers bound');
 });
 </script>
 {% endblock %}
