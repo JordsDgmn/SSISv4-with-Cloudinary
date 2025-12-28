@@ -87,6 +87,100 @@ class CollegeModel:
                 return [dict(row) for row in colleges]
         except Exception as e:
             return []
+    
+    @classmethod
+    def get_colleges_server_side(cls, start, length, search_value, order_column, order_dir, column_filters=None):
+        """Server-side pagination for DataTables with column filters
+        JS columns: 0=code, 1=name, 2=actions(no)
+        """
+        if column_filters is None:
+            column_filters = {}
+        warnings = []
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                # Map JS column indices to SQL
+                columns_map = {0: 'code', 1: 'name'}
+                order_col = columns_map.get(order_column, 'code')
+                print(f"[DEBUG] Colleges: col {order_column} -> {order_col} {order_dir}")
+                print(f"[DEBUG] Initial column_filters (colleges): {column_filters}")
+
+                base_query = "FROM college"
+                where_clauses = []
+                search_params = []
+
+                # Global search
+                search_value = str(search_value or '').strip()
+                if search_value:
+                    where_clauses.append("(code ILIKE %s OR name ILIKE %s)")
+                    pattern = f'%{search_value}%'
+                    search_params.extend([pattern, pattern])
+                    print(f"[DEBUG] Global search enabled: {search_value}")
+
+                # Column filters
+                if column_filters.get('code'):
+                    where_clauses.append("code ILIKE %s")
+                    search_params.append(f"%{column_filters.get('code')}%")
+                    print(f"[DEBUG] College code filter: {column_filters.get('code')}")
+
+                if column_filters.get('name'):
+                    where_clauses.append("name ILIKE %s")
+                    search_params.append(f"%{column_filters.get('name')}%")
+                    print(f"[DEBUG] College name filter: {column_filters.get('name')}")
+
+                where_clause = ""
+                if where_clauses:
+                    where_clause = "WHERE " + " AND ".join(where_clauses)
+                    print(f"[DEBUG] Combined WHERE clause: {where_clause}")
+
+                # Total count
+                cur.execute("SELECT COUNT(*) as total FROM college")
+                total_records = cur.fetchone()['total']
+
+                # Filtered count
+                count_query = f"SELECT COUNT(*) as total {base_query} {where_clause}"
+                if search_params:
+                    cur.execute(count_query, tuple(search_params))
+                    filtered_records = cur.fetchone()['total']
+                else:
+                    filtered_records = total_records
+
+                # Get data
+                query = f"""SELECT college_id, code, name {base_query} {where_clause}
+                    ORDER BY {order_col} {order_dir} LIMIT %s OFFSET %s"""
+
+                params = list(search_params) + [length, start]
+                print(f"[DEBUG] Executing data query with params: {params}")
+                cur.execute(query, tuple(params))
+                results = cur.fetchall()
+                data = [dict(row) for row in results]
+                print(f"[DEBUG] Colleges returned {len(data)} rows; filtered={filtered_records}; warnings={warnings}")
+
+                debug = {'where_clause': where_clause, 'count_query': count_query, 'count_params': search_params, 'data_query': query, 'data_params': params}
+
+                result = {'data': data, 'recordsTotal': total_records, 'recordsFiltered': filtered_records, 'debug': debug}
+                if warnings:
+                    result['warnings'] = warnings
+
+                return result
+        except Exception as e:
+            print(f"Error in get_colleges_server_side: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'data': [], 'recordsTotal': 0, 'recordsFiltered': 0}
+
+    @classmethod
+    def search_colleges(cls, search_query):
+        """Search colleges by code or name"""
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute(
+                    "SELECT college_id, code, name FROM college WHERE name ILIKE %s OR code ILIKE %s ORDER BY code", 
+                    (f'%{search_query}%', f'%{search_query}%')
+                )
+                colleges = cur.fetchall()
+                return [dict(row) for row in colleges]
+        except Exception as e:
+            return []
 
     @classmethod
     def get_college_by_id(cls, college_id):

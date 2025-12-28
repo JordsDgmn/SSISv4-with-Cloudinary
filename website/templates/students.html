@@ -60,6 +60,9 @@
         <button class="btn btn-outline-info btn-sm" id="toggleFilters">
           <i class="bi bi-funnel me-1"></i>Toggle Filters
         </button>
+        <button class="btn btn-outline-primary btn-sm" id="applyFilters">
+          <i class="bi bi-filter-circle me-1"></i>Apply Filters
+        </button>
         <button class="btn btn-outline-danger btn-sm" id="clearFilters">
           <i class="bi bi-x-circle me-1"></i>Clear All Filters
         </button>
@@ -82,7 +85,7 @@
           <select class="form-select form-select-sm column-filter" data-column="3">
             <option value="">All Programs</option>
             {% for program in programs %}
-              <option value="{{ program.name if program.name else 'Unnamed' }} ({{ program.code if program.code else 'N/A' }})">
+              <option value="{{ program.program_id }}">
                 {{ program.name if program.name else 'Unnamed' }} ({{ program.code if program.code else 'N/A' }})
               </option>
             {% endfor %}
@@ -122,85 +125,17 @@
               <th>College</th>
               <th width="100">Year</th>
               <th width="80">Gender</th>
-              {% if session.get('user_id') %}
               <th width="150">Actions</th>
-              {% endif %}
             </tr>
           </thead>
           <tbody>
-            {% for student in students %}
-            <tr>
-              <td>
-                <div class="profile-pic-container">
-                  {% if student.profile_pic %}
-                    <img src="{{ student.profile_pic }}" alt="Profile" class="profile-pic">
-                  {% else %}
-                    <i class="bi bi-person profile-placeholder"></i>
-                  {% endif %}
-                </div>
-              </td>
-              <td>
-                <span class="fw-bold font-monospace">{{ student.id }}</span>
-              </td>
-              <td>
-                <div>
-                  <div class="fw-semibold">{{ student.firstname }} {{ student.lastname }}</div>
-                </div>
-              </td>
-              <td>
-                <div>
-                  <div class="fw-medium">{{ student.program_name }}</div>
-                  <small class="text-muted">({{ student.program_code }})</small>
-                </div>
-              </td>
-              <td>
-                <small class="text-muted">{{ student.college_name }}</small>
-              </td>
-              <td>
-                <span class="badge year-badge">{{ student.year }}</span>
-              </td>
-              <td data-order="{{ student.gender }}">
-                <span class="badge gender-badge-{{ student.gender.lower() }}">
-                  <i class="bi bi-{{ 'person-standing' if student.gender == 'Male' else 'person-standing-dress' }} me-1"></i>
-                  {{ student.gender }}
-                </span>
-              </td>
-              {% if session.get('user_id') %}
-              <td>
-                <div class="btn-group" role="group">
-                  <a href="/students/view/{{ student.id}}" 
-                     class="btn btn-outline-info btn-sm" 
-                     title="View Details">
-                    <i class="bi bi-eye"></i>
-                  </a>
-                  <button type="button"
-                          class="btn btn-outline-primary btn-sm edit-student" 
-                          title="Edit Student"
-                          data-bs-toggle="modal" 
-                          data-bs-target="#editStudentModal"
-                          data-student-id="{{ student.id }}"
-                          data-first-name="{{ student.firstname }}"
-                          data-last-name="{{ student.lastname }}"
-                          data-program-id="{{ student.program_id if student.program_id else '' }}"
-                          data-year="{{ student.year }}"
-                          data-gender="{{ student.gender }}"
-                          data-profile-pic="{{ student.profile_pic or '' }}">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <a href="javascript:void(0)" 
-                     class="btn btn-outline-danger btn-sm delete-student" 
-                     title="Delete Student" 
-                     data-student-id="{{ student.id }}"
-                     data-student-name="{{ student.firstname }} {{ student.lastname }}">
-                    <i class="bi bi-trash"></i>
-                  </a>
-                </div>
-              </td>
-              {% endif %}
-            </tr>
-            {% endfor %}
+            <!-- DataTables will populate this via AJAX -->
           </tbody>
         </table>
+        <!-- Hidden marker for authentication status -->
+        {% if session.get('user_id') %}
+        <div data-user-authenticated style="display:none;"></div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -428,102 +363,75 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-  console.log('[STUDENTS] Page loaded, jQuery version:', $.fn.jquery);
-  console.log('[STUDENTS] DataTables available:', typeof $.fn.DataTable);
+  console.log('[STUDENTS] Waiting for server-side DataTable...');
   
-  // Destroy existing table if present to prevent errors
-  if ($.fn.DataTable.isDataTable('#studentsTable')) {
-    console.log('[STUDENTS] Destroying existing DataTable...');
-    $('#studentsTable').DataTable().destroy();
-  }
+  let attempts = 0;
+  const maxAttempts = 50;
   
-  // Initialize DataTable fresh
-  console.log('[STUDENTS] Initializing DataTable...');
-  const table = $('#studentsTable').DataTable({
-    responsive: true,
-    pageLength: 25,
-    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-    order: [[1, 'asc']], // Sort by Student ID
-    columnDefs: [
-      { orderable: false, targets: 0 }, // Photo column
-      { orderable: false, targets: -1 }, // Actions column
-      { 
-        // Gender column - use data-order attribute for filtering/sorting
-        targets: 6,
-        type: 'html',
-        render: function(data, type, row) {
-          if (type === 'filter' || type === 'sort') {
-            // Extract text content only (removes HTML tags)
-            return $('<div>').html(data).text().trim();
-          }
-          return data;
-        }
-      }
-    ],
-    // Force client-side processing
-    processing: false,
-    serverSide: false,
-    // Ensure no AJAX calls
-    ajax: undefined,
-    deferRender: true
-  });
-  console.log('[STUDENTS] DataTable initialized successfully');
-  
-  // Column filtering - attach to filter section inputs
-  const filterInputs = $('#filterSection input, #filterSection select');
-  console.log('[STUDENTS] Found filter inputs:', filterInputs.length);
-  
-  filterInputs.on('keyup change', function() {
-    const columnIndex = $(this).data('column');
-    const value = this.value;
+  const waitForDataTable = setInterval(function() {
+    attempts++;
     
-    console.log('[STUDENTS] *** FILTER APPLIED *** Column:', columnIndex, 'Value:', value);
-    
-    // For Gender (6) and Year (5) columns, use exact word matching with word boundaries
-    // For Program (3), use simple contains match (no regex needed since parentheses cause issues)
-    // For ID (1) and Name (2), use partial matching
-    if ((columnIndex == 5 || columnIndex == 6) && value !== '') {
-      // Use word boundary regex for Year and Gender only
-      table.column(columnIndex).search('\\b' + value + '\\b', true, false).draw();
-    } else {
-      // Regular search for text inputs, program dropdown, or empty dropdowns
-      table.column(columnIndex).search(value).draw();
+    if (window.studentsTableInstance) {
+      clearInterval(waitForDataTable);
+      console.log('[STUDENTS] ✅ DataTable ready - attaching column filters');
+      const table = window.studentsTableInstance;
+      
+      // Column filtering - update filter object (apply with button)
+      $('#filterSection input[data-column="1"]').on('keyup change', function() {
+        window.studentColumnFilters.studentId = this.value;
+      });
+      
+      $('#filterSection input[data-column="2"]').on('keyup change', function() {
+        window.studentColumnFilters.name = this.value;
+      });
+      
+      $('#filterSection select[data-column="3"]').on('change', function() {
+        window.studentColumnFilters.program = this.value;
+      });
+      
+      $('#filterSection select[data-column="5"]').on('change', function() {
+        window.studentColumnFilters.year = this.value;
+      });
+      
+      $('#filterSection select[data-column="6"]').on('change', function() {
+        window.studentColumnFilters.gender = this.value;
+      });
+
+      // Apply filters button
+      $('#applyFilters').on('click', function(e) {
+        e.preventDefault();
+        console.log('[STUDENTS] Apply Filters clicked, filters:', window.studentColumnFilters);
+        table.ajax.reload();
+      });
+      
+      // Toggle filters button
+      $('#toggleFilters').on('click', function(e) {
+        e.preventDefault();
+        $('#filterSection').slideToggle(200);
+      });
+      
+      // Clear all filters
+      $('#clearFilters').on('click', function(e) {
+        e.preventDefault();
+        $('#filterSection input').val('');
+        $('#filterSection select').prop('selectedIndex', 0);
+        window.studentColumnFilters = {
+          studentId: '',
+          name: '',
+          program: '',
+          year: '',
+          gender: ''
+        };
+        table.ajax.reload();
+      });
+      
+      console.log('[STUDENTS] ✅ Column filters attached (backend filtering)');
+      
+    } else if (attempts >= maxAttempts) {
+      clearInterval(waitForDataTable);
+      console.error('[STUDENTS] ❌ Timeout waiting for DataTable');
     }
-    
-    console.log('[STUDENTS] Table redrawn with filter');
-  });
-  
-  // Toggle filters button
-  const toggleBtn = $('#toggleFilters');
-  console.log('[STUDENTS] Toggle button found:', toggleBtn.length);
-  
-  toggleBtn.on('click', function(e) {
-    e.preventDefault();
-    console.log('[STUDENTS] *** TOGGLE CLICKED ***');
-    const filterSection = $('#filterSection');
-    const isVisible = filterSection.is(':visible');
-    console.log('[STUDENTS] Current visibility:', isVisible);
-    
-    filterSection.slideToggle(200);
-    $(this).toggleClass('active');
-    
-    console.log('[STUDENTS] Filter section toggled');
-  });
-  
-  // Clear all filters button
-  const clearBtn = $('#clearFilters');
-  console.log('[STUDENTS] Clear button found:', clearBtn.length);
-  
-  clearBtn.on('click', function(e) {
-    e.preventDefault();
-    console.log('[STUDENTS] *** CLEAR FILTERS CLICKED ***');
-    $('#filterSection input').val('');
-    $('#filterSection select').prop('selectedIndex', 0);
-    table.columns().search('').draw();
-    console.log('[STUDENTS] All filters cleared and table redrawn');
-  });
-  
-  console.log('[STUDENTS] All event handlers bound');
+  }, 100);
 });
 </script>
 {% endblock %}

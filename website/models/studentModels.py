@@ -199,6 +199,190 @@ class StudentModel:
     def search_students(cls, search_query):
         try:
             with DatabaseManager.get_cursor() as (cur, conn):
+                cur.execute("""
+                    SELECT s.id, s.firstname, s.lastname,
+                        s.program_id, s.year, s.gender,
+                        s.profile_pic,
+                        p.program_id, p.code AS program_code, p.name AS program_name,
+                        c.college_id, c.code AS college_code, c.name AS college_name
+                    FROM student s
+                    LEFT JOIN program p ON s.program_id = p.program_id
+                    LEFT JOIN college c ON p.college_id = c.college_id 
+                    WHERE s.id ILIKE %s 
+                        OR s.firstname ILIKE %s 
+                        OR s.lastname ILIKE %s
+                        OR p.code ILIKE %s
+                        OR p.name ILIKE %s
+                        OR c.code ILIKE %s
+                        OR c.name ILIKE %s
+                    ORDER BY s.id ASC
+                """, tuple([f'%{search_query}%'] * 7))
+
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+        except Exception as e:
+            return []
+    
+    @classmethod
+    def get_students_server_side(cls, start, length, search_value, order_column, order_dir, column_filters=None):
+        """Server-side pagination for DataTables with custom column filters
+        JS column indices: 0=photo(no), 1=id, 2=name, 3=program, 4=college, 5=year, 6=gender, 7=actions(no)
+        """
+        print(f"\n{'='*100}")
+        print(f"🔍 [TRACE] get_students_server_side() called")
+        print(f"  start={start}, length={length}")
+        print(f"  search='{search_value}'")
+        print(f"  order_column={order_column}, order_dir={order_dir}")
+        print(f"  column_filters={column_filters}")
+        
+        if column_filters is None:
+            column_filters = {}
+        warnings = []
+        
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
+                # Map JS column indices to SQL - skip 0,7 as they're non-orderable
+                columns_map = {1: 's.id', 2: 's.firstname', 3: 'p.name', 4: 'c.name', 5: 's.year', 6: 's.gender'}
+                order_col = columns_map.get(order_column, 's.id')
+                print(f"[TRACE] Column mapping: {order_column} → {order_col}")
+                print(f"[TRACE] Initial column_filters: {column_filters}")
+
+                # Base query
+                base_query = """
+                    FROM student s
+                    LEFT JOIN program p ON s.program_id = p.program_id
+                    LEFT JOIN college c ON p.college_id = c.college_id
+                """
+                print(f"[TRACE] Base query constructed")
+
+                # Build WHERE clauses
+                where_clauses = []
+                search_params = []
+                
+                # Global search filter
+                search_value = str(search_value or '').strip()
+                if search_value:
+                    where_clauses.append("""(s.id ILIKE %s OR s.firstname ILIKE %s OR s.lastname ILIKE %s
+                        OR p.code ILIKE %s OR p.name ILIKE %s OR c.code ILIKE %s OR c.name ILIKE %s)""")
+                    pattern = f'%{search_value}%'
+                    search_params.extend([pattern] * 7)
+                    print(f"[TRACE] Global search filter enabled: '{search_value}'")
+                
+                # Custom column filters (backend filtering!)
+                if column_filters.get('studentId'):
+                    where_clauses.append("s.id ILIKE %s")
+                    search_params.append(f"%{column_filters['studentId']}%")
+                    print(f"[TRACE] Student ID filter: {column_filters['studentId']}")
+                
+                if column_filters.get('name'):
+                    where_clauses.append("(s.firstname ILIKE %s OR s.lastname ILIKE %s)")
+                    search_params.extend([f"%{column_filters['name']}%"] * 2)
+                    print(f"[TRACE] Name filter: {column_filters['name']}")
+                
+                if column_filters.get('program'):
+                    prog_val = column_filters.get('program')
+                    # If program filter is numeric, treat as program_id equality
+                    try:
+                        prog_id = int(prog_val)
+                        # Verify program exists
+                        cur.execute("SELECT 1 FROM program WHERE program_id = %s", (prog_id,))
+                        exists = cur.fetchone()
+                        if not exists:
+                            warnings.append(f"Program id {prog_id} not found")
+                            print(f"[WARN] Program id {prog_id} not found in program table")
+                        where_clauses.append("s.program_id = %s")
+                        search_params.append(prog_id)
+                        print(f"[TRACE] Program filter (by id): {prog_id}")
+                    except Exception:
+                        where_clauses.append("(p.code ILIKE %s OR p.name ILIKE %s)")
+                        search_params.extend([f"%{prog_val}%"] * 2)
+                        print(f"[TRACE] Program filter (by text): {prog_val}")
+                
+                if column_filters.get('year'):
+                    where_clauses.append("s.year = %s")
+                    search_params.append(column_filters['year'])
+                    print(f"[TRACE] Year filter: {column_filters['year']}")
+                
+                if column_filters.get('gender'):
+                    where_clauses.append("s.gender = %s")
+                    search_params.append(column_filters['gender'])
+                    print(f"[TRACE] Gender filter: {column_filters['gender']}")
+                
+                # Combine WHERE clauses
+                where_clause = ""
+                if where_clauses:
+                    where_clause = "WHERE " + " AND ".join(where_clauses)
+                    print(f"[TRACE] Combined WHERE clause: {where_clause}")
+
+                # Get total count (no filters)
+                print(f"[TRACE] Executing COUNT(*) for total records...")
+                cur.execute(f"SELECT COUNT(*) as total {base_query}")
+                total_result = cur.fetchone()
+                total_records = total_result['total'] if total_result else 0
+                print(f"[TRACE] ✅ Total records in database: {total_records}")
+
+                # Get filtered count  
+                print(f"[TRACE] Executing COUNT(*) with filters...")
+                count_query = f"SELECT COUNT(*) as total {base_query} {where_clause}"
+                if search_params:
+                    cur.execute(count_query, tuple(search_params))
+                else:
+                    cur.execute(count_query)
+                filtered_result = cur.fetchone()
+                filtered_records = filtered_result['total'] if filtered_result else 0
+                print(f"[TRACE] ✅ Filtered records: {filtered_records}")
+
+                # Get paginated data
+                query = f"""SELECT s.id, s.firstname, s.lastname, s.program_id, s.year, s.gender, s.profile_pic,
+                        p.code, p.name AS program_name, c.code AS college_code, c.name AS college_name
+                    {base_query} {where_clause}
+                    ORDER BY {order_col} {order_dir} LIMIT %s OFFSET %s"""
+                
+                params = list(search_params) + [length, start]
+                print(f"[TRACE] Executing data query: LIMIT {length} OFFSET {start}")
+                print(f"[TRACE] Full SQL: {query[:200]}...")
+                print(f"[TRACE] Query params: {params}")
+                cur.execute(query, tuple(params))
+                results = cur.fetchall()
+                data = [dict(row) for row in results]
+                print(f"[TRACE] ✅ Retrieved {len(data)} rows")
+                
+                if data:
+                    print(f"[TRACE] First row keys: {list(data[0].keys())}")
+                    print(f"[TRACE] First row sample: {data[0]}")
+
+                result = {'data': data, 'recordsTotal': total_records, 'recordsFiltered': filtered_records}
+                # Attach warnings and debug info for diagnostics (development)
+                debug_info = {
+                    'where_clause': where_clause,
+                    'count_query': count_query,
+                    'count_params': search_params,
+                    'data_query': query,
+                    'data_params': params
+                }
+                result['debug'] = debug_info
+                if warnings:
+                    result['warnings'] = warnings
+                print(f"[TRACE] Returning result dict with:")
+                print(f"  - recordsTotal: {result['recordsTotal']}")
+                print(f"  - recordsFiltered: {result['recordsFiltered']}")
+                print(f"  - data: {len(result['data'])} rows")
+                if warnings:
+                    print(f"  - warnings: {warnings}")
+                print(f"  - debug: {debug_info}")
+                print(f"{'='*100}\n")
+                return result
+        except Exception as e:
+            print(f"[ERROR] ❌ Exception in get_students_server_side: {e}")
+            import traceback
+            traceback.print_exc()
+            print(f"{'='*100}\n")
+            return {'data': [], 'recordsTotal': 0, 'recordsFiltered': 0}
+
+    @classmethod
+    def search_students(cls, search_query):
+        try:
+            with DatabaseManager.get_cursor() as (cur, conn):
                 query = """
                 SELECT s.id, s.profile_pic, s.firstname, s.lastname, 
                        s.program_id, s.year, s.gender,

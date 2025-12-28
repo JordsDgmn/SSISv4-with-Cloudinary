@@ -38,7 +38,6 @@ def get_public_id_from_url(cloudinary_url):
     try:
         # Extract the part after /upload/ and before the file extension
         # Example: https://res.cloudinary.com/demo/image/upload/v1234567890/sample.jpg
-        # Result: v1234567890/sample
         parts = cloudinary_url.split('/upload/')
         if len(parts) > 1:
             # Get everything after /upload/ and remove file extension
@@ -53,17 +52,16 @@ def get_public_id_from_url(cloudinary_url):
 
 @studentRoute.route("/students", methods=["GET", "POST"])
 def students():
-    has_prev = False
-    has_next = False
-
-    max_size_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
-
+    """Main students page with server-side DataTables - Allow guest access for viewing"""
     if request.method == "POST":
-        # Require authentication for creating students
-        if 'user_id' not in session:
-            flash('Please log in to add students', 'warning')
+        # CRUD operations require authentication
+        if not session.get('user_id'):
+            flash('You must be logged in to perform this action', 'danger')
             return redirect(url_for('auth.login'))
-        profile_file = request.files.get("file")
+        
+        # Handle student creation with profile picture
+        profile_file = request.files.get('profilePic')
+        max_size_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
 
         if not profile_file:
             student_id = add_student()
@@ -81,38 +79,141 @@ def students():
                 print('prof', profile_file.filename)  # Adjusted to match FormData key
                 student_id = add_student()
                 print(student_id)
-                upload_result = cloudinary.uploader.upload(profile_file)
-                secure_url = upload_result['url']
-                print(secure_url)
-                student_model.update_student_profile_pic(student_id, secure_url)
+                # Defensive Cloudinary config check
+                from config import Config
+                if not (Config.CLOUDINARY_CLOUD_NAME and Config.CLOUDINARY_API_KEY and Config.CLOUDINARY_API_SECRET):
+                    print("[ERROR] Cloudinary API key/config missing. Skipping upload.")
+                    flash('Cloudinary API key/config missing. Cannot upload profile picture.', 'danger')
+                else:
+                    try:
+                        upload_result = cloudinary.uploader.upload(profile_file)
+                        secure_url = upload_result['url']
+                        print(secure_url)
+                        student_model.update_student_profile_pic(student_id, secure_url)
+                    except Exception as e:
+                        print(f"[ERROR] Cloudinary upload failed: {e}")
+                        flash(f'Cloudinary upload failed: {e}', 'danger')
         else:
             flash('Invalid file type. Please upload a valid file.', 'danger')
 
         # Redirect to prevent form resubmission
         return redirect(url_for('students.students'))
 
-    search_query = request.args.get("search")
-
+    # GET request - render page (allowed for guests)
     programs = program_model.get_programs()
-    students = []
 
-    search_query = "" if search_query is None else search_query
+    # Get total count for the stats card
+    from website.database import DatabaseManager
+    try:
+        with DatabaseManager.get_cursor() as (cur, conn):
+            cur.execute("SELECT COUNT(*) as total FROM student")
+            total_count = cur.fetchone()['total']
+    except Exception as e:
+        print(f"Error getting student count: {e}")
+        total_count = 0
 
-    if search_query:
-        students = student_model.search_students(search_query)
-    else:
-        # Fetch ALL students - let DataTables handle pagination on client side
-        students = student_model.get_all_students()
-    
-    total_count = len(students)
-
+    # For initial page load, render template with count (data loaded via AJAX by DataTables)
     return render_template(
         "students.html",
         programs=programs,
-        students=students,
         total_count=total_count,
-        search_query=search_query,
+        search_query="",
     )
+
+@studentRoute.route("/students/data", methods=["POST"])
+def students_data():
+    """DataTables server-side processing endpoint with custom column filters"""
+    print(f"\n{'='*100}")
+    print(f"🔍 [TRACE] POST /students/data - AJAX REQUEST RECEIVED")
+    print(f"{'='*100}")
+    try:
+        # Parse incoming request
+        raw_data = request.get_data(as_text=True)
+        print(f"[TRACE] Raw request body: {raw_data[:200]}")
+        
+        data = request.json or request.get_json(force=True) or {}
+        print(f"[TRACE] Parsed request.json: {data}")
+        
+        # Parse DataTables parameters
+        draw = int(data.get('draw', 1))
+        start = int(data.get('start', 0))
+        length = int(data.get('length', 25))
+        search_value = str(data.get('search', {}).get('value', '')).strip()
+        
+        # Parse custom column filters (sent from frontend)
+        column_filters = data.get('columnFilters', {})
+        print(f"[TRACE] Custom column filters: {column_filters}")
+
+        # Validate column_filters type
+        if not isinstance(column_filters, dict):
+            error_msg = 'columnFilters must be an object/dictionary'
+            print(f"[ERROR] {error_msg}: {column_filters}")
+            return jsonify({'draw': draw, 'recordsTotal': 0, 'recordsFiltered': 0, 'data': [], 'error': error_msg})
+        
+        # Parse order parameters
+        order_info = data.get('order', [{}])[0] if data.get('order') else {}
+        order_column = int(order_info.get('column', 0))
+        order_dir = str(order_info.get('dir', 'asc')).upper()
+        
+        print(f"\n[TRACE] DataTables Parameters:")
+        print(f"  - draw: {draw}")
+        print(f"  - start: {start}")
+        print(f"  - length: {length}")
+        print(f"  - search: '{search_value}'")
+        print(f"  - order_column: {order_column}, order_dir: {order_dir}")
+        print(f"  - column_filters: {column_filters}")
+        
+        # Get data from model with column filters
+        print(f"\n[TRACE] Calling get_students_server_side()...")
+        result = student_model.get_students_server_side(
+            start, length, search_value, order_column, order_dir, column_filters
+        )
+        print(f"[TRACE] Model returned: {type(result)} - {result.keys() if isinstance(result, dict) else 'NOT A DICT'}")
+        
+        # Validate response
+        if not result or 'data' not in result:
+            print(f"[ERROR] ❌ Invalid model response: {result}")
+            result = {'data': [], 'recordsTotal': 0, 'recordsFiltered': 0, 'error': 'Invalid model response'}
+        
+        print(f"\n[TRACE] Response being sent to frontend:")
+        print(f"  - recordsTotal: {result.get('recordsTotal')}")
+        print(f"  - recordsFiltered: {result.get('recordsFiltered')}")
+        print(f"  - data rows: {len(result.get('data', []))}")
+        if result.get('data'):
+            print(f"  - first row keys: {result['data'][0].keys()}")
+            print(f"  - first row: {result['data'][0]}")
+        if result.get('warnings'):
+            print(f"  - warnings: {result.get('warnings')}")
+        if result.get('error'):
+            print(f"  - error: {result.get('error')}")
+        
+        response_json = {
+            'draw': draw,
+            'recordsTotal': result.get('recordsTotal', 0),
+            'recordsFiltered': result.get('recordsFiltered', 0),
+            'data': result.get('data', [])
+        }
+        # Attach warnings/error/debug for frontend diagnostics (development only)
+        if result.get('warnings'):
+            response_json['warnings'] = result.get('warnings')
+        if result.get('error'):
+            response_json['error'] = result.get('error')
+        if result.get('debug'):
+            response_json['debug'] = result.get('debug')
+        
+        print(f"\n[TRACE] Final JSON response:")
+        import json
+        print(json.dumps(response_json, indent=2, default=str)[:2000])
+        print(f"{'='*100}\n")
+        
+        return jsonify(response_json)
+        
+    except Exception as e:
+        print(f"\n[ERROR] ❌ /students/data exception: {e}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*100}\n")
+        return jsonify({'draw': 1, 'recordsTotal': 0, 'recordsFiltered': 0, 'data': []})
 
 def add_student():
     print(f"\n{'='*80}")

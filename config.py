@@ -16,11 +16,5 @@ class Config:
     POSTGRES_USER = os.environ.get('POSTGRES_USER', 'postgres')
     POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'geodgmn')
     POSTGRES_DB = os.environ.get('POSTGRES_DB', 'ssis')
-    
-    # SQLAlchemy Database URI
-    SQLALCHEMY_DATABASE_URI = (
-        f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@"
-        f"{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-    )
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 

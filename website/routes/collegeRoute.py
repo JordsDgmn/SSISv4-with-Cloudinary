@@ -81,17 +81,60 @@ def colleges():
         # Redirect to prevent form resubmission
         return redirect(url_for('college.colleges'))
     
-    search_query = request.args.get("search")
-    
-    if search_query is None:
-        search_query = ""  # Set a default value to an empty string if search_query is None
-    
-    colleges = college_model.search_colleges(search_query) if search_query else college_model.get_colleges()
-    programs = program_model.get_programs()
-    students_data = student_model.get_students(page_size=999999, page_number=1)
-    students = students_data.get("results", []) if isinstance(students_data, dict) else []
-    
-    return render_template("colleges.html", colleges=colleges, programs=programs, students=students, search_query=search_query)
+    # For initial page load, just render template
+    # Data will be loaded via AJAX by DataTables
+    return render_template("colleges.html", search_query="")
+
+@collegeRoute.route("/colleges/data", methods=["POST"])
+def colleges_data():
+    """DataTables server-side processing endpoint"""
+    try:
+        data = request.json or request.get_json(force=True) or {}
+        
+        draw = int(data.get('draw', 1))
+        start = int(data.get('start', 0))
+        length = int(data.get('length', 25))
+        search_value = str(data.get('search', {}).get('value', '')).strip()
+        
+        # Custom column filters (from client)
+        column_filters = data.get('columnFilters', {})
+        print(f"[DEBUG] Custom column filters (colleges): {column_filters}")
+        if not isinstance(column_filters, dict):
+            error_msg = 'columnFilters must be an object/dictionary'
+            print(f"[ERROR] {error_msg}: {column_filters}")
+            return jsonify({'draw': draw, 'recordsTotal': 0, 'recordsFiltered': 0, 'data': [], 'error': error_msg})
+
+        order_info = data.get('order', [{}])[0] if data.get('order') else {}
+        order_column = int(order_info.get('column', 0))
+        order_dir = str(order_info.get('dir', 'asc')).upper()
+
+        print(f"[DEBUG] POST /colleges/data: start={start}, len={length}, search='{search_value}', col={order_column}, dir={order_dir}")
+
+        result = college_model.get_colleges_server_side(start, length, search_value, order_column, order_dir, column_filters)
+        
+        if not result or 'data' not in result:
+            print(f"[ERROR] Invalid colleges response")
+            result = {'data': [], 'recordsTotal': 0, 'recordsFiltered': 0}
+
+        print(f"[DEBUG] /colleges: total={result['recordsTotal']}, filtered={result['recordsFiltered']}, rows={len(result['data'])}")
+
+        response = {
+            'draw': draw,
+            'recordsTotal': result.get('recordsTotal', 0),
+            'recordsFiltered': result.get('recordsFiltered', 0),
+            'data': result.get('data', [])
+        }
+        if result.get('warnings'):
+            response['warnings'] = result.get('warnings')
+        if result.get('debug'):
+            response['debug'] = result.get('debug')
+
+        return jsonify(response)
+    except Exception as e:
+        print(f"[ERROR] /colleges/data: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'draw': 1, 'recordsTotal': 0, 'recordsFiltered': 0, 'data': []})
 
 @collegeRoute.route("/colleges/delete/<int:college_id>", methods=["GET", "POST", "DELETE"])
 @login_required

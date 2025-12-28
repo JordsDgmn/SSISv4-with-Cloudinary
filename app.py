@@ -1,3 +1,5 @@
+# === CRASH TRACEPOINT: app.py top ===
+print("=== TRACEPOINT: app.py module loaded ===")
 from website import create_app
 from flask import Flask
 

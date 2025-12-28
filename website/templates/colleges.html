@@ -57,6 +57,9 @@
         <button class="btn btn-outline-info btn-sm" id="toggleCollegeFilters">
           <i class="bi bi-funnel me-1"></i>Toggle Filters
         </button>
+        <button class="btn btn-outline-primary btn-sm" id="applyCollegeFilters">
+          <i class="bi bi-filter-circle me-1"></i>Apply Filters
+        </button>
         <button class="btn btn-outline-danger btn-sm" id="clearCollegeFilters">
           <i class="bi bi-x-circle me-1"></i>Clear All Filters
         </button>
@@ -78,85 +81,27 @@
     </div>
     
     <div class="card-body p-0">
-      {% if colleges %}
-        <div class="table-responsive">
-          <table class="table table-hover mb-0" id="collegesTable">
-            <thead>
-              <tr>
-                <th>College Code</th>
-                <th>College Name</th>
-                <th>Programs</th>
-                <th>Students</th>
-                {% if session.get('user_id') %}
-                <th width="150">Actions</th>
-                {% endif %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for college in colleges %}
-                <tr>
-                  <td>
-                    <span class="badge bg-primary">{{ college.code }}</span>
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <i class="bi bi-building text-muted me-2"></i>
-                      <span class="fw-medium">{{ college.name }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    {% set program_count = programs|selectattr('college_code', 'equalto', college.code)|list|length if programs else 0 %}
-                    <span class="badge bg-outline-secondary">{{ program_count }} programs</span>
-                  </td>
-                  <td>
-                    {% set student_count = students|selectattr('college_code', 'equalto', college.code)|list|length if students else 0 %}
-                    <span class="badge bg-outline-info">{{ student_count }} students</span>
-                  </td>
-                  {% if session.get('user_id') %}
-                  <td class="text-center">
-                    <div class="btn-group" role="group">
-                      <a href="/colleges/view/{{ college.code }}" 
-                         class="btn btn-outline-info btn-sm" 
-                         title="View College">
-                        <i class="bi bi-eye"></i>
-                      </a>
-                      <button type="button" 
-                              class="btn btn-outline-primary btn-sm edit-college" 
-                              data-college-id="{{ college.college_id }}"
-                              data-college-code="{{ college.code }}"
-                              data-college-name="{{ college.name }}"
-                              data-bs-toggle="modal"
-                              data-bs-target="#editCollegeModal"
-                              title="Edit College">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-                      <a href="javascript:void(0)" 
-                         class="btn btn-outline-danger btn-sm delete-college" 
-                         data-college-id="{{ college.college_id }}"
-                         data-college-code="{{ college.code }}"
-                         data-college-name="{{ college.name }}"
-                         title="Delete College">
-                        <i class="bi bi-trash"></i>
-                      </a>
-                    </div>
-                  </td>
-                  {% endif %}
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="text-center py-5">
-          <i class="bi bi-building display-1 text-muted"></i>
-          <h4 class="mt-3 text-muted">No Colleges Found</h4>
-          <p class="text-muted">Get started by adding your first college to the system.</p>
-          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCollegeModal">
-            <i class="bi bi-plus-circle me-2"></i>Add First College
-          </button>
-        </div>
-      {% endif %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="collegesTable">
+          <thead>
+            <tr>
+              <th>College Code</th>
+              <th>College Name</th>
+              <th width="150">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- DataTables will populate this via AJAX -->
+          </tbody>
+        </table>
+      </div>
     </div>
+    </div>
+    
+    <!-- Hidden marker for authentication status -->
+    {% if session.get('user_id') %}
+    <div data-user-authenticated style="display:none;"></div>
+    {% endif %}
   </div>
 </div>
 
@@ -285,79 +230,58 @@
 
 {% block scripts %}
 <script>
-  $(document).ready(function() {
-    console.log('[COLLEGES] Page loaded, jQuery version:', $.fn.jquery);
-    console.log('[COLLEGES] DataTables available:', typeof $.fn.DataTable);
+$(document).ready(function() {
+  console.log('[COLLEGES] Waiting for DataTable from modern-app.js...');
+  
+  let attempts = 0;
+  const maxAttempts = 50;
+  
+  const waitForDataTable = setInterval(function() {
+    attempts++;
     
-    // Destroy existing table if present
-    if ($.fn.DataTable.isDataTable('#collegesTable')) {
-      console.log('[COLLEGES] Destroying existing DataTable...');
-      $('#collegesTable').DataTable().destroy();
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable('#collegesTable')) {
+      clearInterval(waitForDataTable);
+      console.log('[COLLEGES] ✅ DataTable ready - attaching filters');
+      const table = $('#collegesTable').DataTable();
+      
+      // Column filtering state (server-side)
+      window.collegeColumnFilters = window.collegeColumnFilters || { code: '', name: '' };
+      $('#collegeFilterSection input[data-column="0"]').on('keyup change', function() {
+        window.collegeColumnFilters.code = this.value;
+      });
+      $('#collegeFilterSection input[data-column="1"]').on('keyup change', function() {
+        window.collegeColumnFilters.name = this.value;
+      });
+
+      // Apply filters (send to server)
+      $('#applyCollegeFilters').on('click', function(e) {
+        e.preventDefault();
+        console.log('[COLLEGES] Apply Filters clicked, filters:', window.collegeColumnFilters);
+        table.ajax.reload();
+      });
+
+      // Toggle filters
+      $('#toggleCollegeFilters').on('click', function(e) {
+        e.preventDefault();
+        $('#collegeFilterSection').slideToggle(200);
+      });
+      
+      // Clear filters
+      $('#clearCollegeFilters').on('click', function(e) {
+        e.preventDefault();
+        $('#collegeFilterSection input').val('');
+        $('#collegeFilterSection select').prop('selectedIndex', 0);
+        window.collegeColumnFilters = { code: '', name: '' };
+        table.ajax.reload();
+      });
+      
+      console.log('[COLLEGES] ✅ Filters attached');
+      
+    } else if (attempts >= maxAttempts) {
+      clearInterval(waitForDataTable);
+      console.error('[COLLEGES] ❌ Timeout waiting for DataTable');
     }
-    
-    // Initialize DataTable fresh
-    console.log('[COLLEGES] Initializing DataTable...');
-    const table = $('#collegesTable').DataTable({
-      responsive: true,
-      pageLength: 25,
-      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-      order: [[0, 'asc']],
-      columnDefs: [
-        { orderable: false, targets: -1 }
-      ],
-      processing: false,
-      serverSide: false,
-      ajax: undefined,
-      deferRender: true
-    });
-    console.log('[COLLEGES] DataTable initialized successfully');
-    
-    // Column filtering
-    const filterInputs = $('#collegeFilterSection input, #collegeFilterSection select');
-    console.log('[COLLEGES] Found filter inputs:', filterInputs.length);
-    
-    filterInputs.on('keyup change', function() {
-      const columnIndex = $(this).data('column');
-      const value = this.value;
-      
-      console.log('[COLLEGES] *** FILTER APPLIED *** Column:', columnIndex, 'Value:', value);
-      
-      table.column(columnIndex).search(value).draw();
-      
-      console.log('[COLLEGES] Table redrawn with filter');
-    });
-    
-    // Toggle filters
-    const toggleBtn = $('#toggleCollegeFilters');
-    console.log('[COLLEGES] Toggle button found:', toggleBtn.length);
-    
-    toggleBtn.on('click', function(e) {
-      e.preventDefault();
-      console.log('[COLLEGES] *** TOGGLE CLICKED ***');
-      const filterSection = $('#collegeFilterSection');
-      const isVisible = filterSection.is(':visible');
-      console.log('[COLLEGES] Current visibility:', isVisible);
-      
-      filterSection.slideToggle(200);
-      $(this).toggleClass('active');
-      
-      console.log('[COLLEGES] Filter section toggled');
-    });
-    
-    // Clear all filters
-    const clearBtn = $('#clearCollegeFilters');
-    console.log('[COLLEGES] Clear button found:', clearBtn.length);
-    
-    clearBtn.on('click', function(e) {
-      e.preventDefault();
-      console.log('[COLLEGES] *** CLEAR FILTERS CLICKED ***');
-      $('#collegeFilterSection input').val('');
-      $('#collegeFilterSection select').prop('selectedIndex', 0);
-      table.columns().search('').draw();
-      console.log('[COLLEGES] All filters cleared and table redrawn');
-    });
-    
-    console.log('[COLLEGES] All event handlers bound');
-  });
+  }, 100);
+});
 </script>
 {% endblock %}

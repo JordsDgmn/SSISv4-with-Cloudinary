@@ -56,6 +56,9 @@
       <button class="btn btn-outline-info btn-sm" id="toggleProgramFilters">
         <i class="bi bi-funnel me-1"></i>Toggle Filters
       </button>
+      <button class="btn btn-outline-primary btn-sm" id="applyProgramFilters">
+        <i class="bi bi-filter-circle me-1"></i>Apply Filters
+      </button>
       <button class="btn btn-outline-danger btn-sm" id="clearProgramFilters">
         <i class="bi bi-x-circle me-1"></i>Clear All Filters
       </button>
@@ -73,8 +76,13 @@
           <input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter name..." data-column="1">
         </div>
         <div class="col-md-3">
-          <label class="form-label small mb-1">College Code</label>
-          <input type="text" class="form-control form-control-sm program-column-filter" placeholder="Filter college..." data-column="2">
+          <label class="form-label small mb-1">College</label>
+          <select class="form-select form-select-sm program-column-filter" data-column="2">
+            <option value="">All Colleges</option>
+            {% for college in colleges %}
+              <option value="{{ college.college_id }}">{{ college.name }} ({{ college.code }})</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="col-md-3">
           <label class="form-label small mb-1">College Name</label>
@@ -90,71 +98,25 @@
             <tr>
               <th>Program Code</th>
               <th>Program Name</th>
-              <th>College Code</th>
-              <th>College Name</th>
-              <th>Students</th>
+              <th>College</th>
+              <th width="150">Actions</th>
               {% if session.get('user_id') %}
               <th width="150">Actions</th>
               {% endif %}
             </tr>
           </thead>
           <tbody>
-            {% for program in programs %}
-            <tr>
-              <td>
-                <span class="badge badge-program-code">{{ program.code }}</span>
-              </td>
-              <td>
-                <div>
-                  <div class="fw-semibold">{{ program.name }}</div>
-                </div>
-              </td>
-              <td>
-                <span class="badge bg-outline-secondary">{{ program.college_code if program.college_code else 'No College' }}</span>
-              </td>
-              <td>
-                <small class="text-muted">{{ program.college_name if program.college_name else 'No College' }}</small>
-              </td>
-              <td>
-                {% set student_count = students|selectattr('program_id', 'equalto', program.program_id)|list|length if students else 0 %}
-                <span class="badge bg-outline-info">{{ student_count }} students</span>
-              </td>
-              {% if session.get('user_id') %}
-              <td class="text-center">
-                <div class="btn-group" role="group">
-                  <a href="/programs/view/{{ program.program_id }}" 
-                     class="btn btn-outline-info btn-sm" 
-                     title="View Programs">
-                    <i class="bi bi-eye"></i>
-                  </a>
-                  <button type="button"
-                          class="btn btn-outline-primary btn-sm edit-program" 
-                          title="Edit Program"
-                          data-bs-toggle="modal" 
-                          data-bs-target="#editProgramModal"
-                          data-program-id="{{ program.program_id }}"
-                          data-program-code="{{ program.code }}"
-                          data-program-name="{{ program.name }}"
-                          data-college-id="{{ program.college_id if program.college_id else '' }}">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <a href="javascript:void(0)" 
-                     class="btn btn-outline-danger btn-sm delete-program" 
-                     title="Delete Program" 
-                     data-program-id="{{ program.program_id }}"
-                     data-program-code="{{ program.code }}"
-                     data-program-name="{{ program.name }}">
-                    <i class="bi bi-trash"></i>
-                  </a>
-                </div>
-              </td>
-              {% endif %}
-            </tr>
-            {% endfor %}
+            <!-- DataTables will populate this via AJAX -->
           </tbody>
         </table>
       </div>
     </div>
+    </div>
+    
+    <!-- Hidden marker for authentication status -->
+    {% if session.get('user_id') %}
+    <div data-user-authenticated style="display:none;"></div>
+    {% endif %}
   </div>
 </div>
 
@@ -296,80 +258,66 @@
 
 {% block scripts %}
 <script>
-  $(document).ready(function() {
-    console.log('[PROGRAMS] Page loaded, jQuery version:', $.fn.jquery);
-    console.log('[PROGRAMS] DataTables available:', typeof $.fn.DataTable);
+$(document).ready(function() {
+  console.log('[PROGRAMS] Waiting for DataTable from modern-app.js...');
+  
+  // Add Apply Filters button to header (already present?) - handlers will bind below
+  window.programColumnFilters = { code: '', name: '', college: '' };
+
+  let attempts = 0;
+  const maxAttempts = 50;
+  
+  const waitForDataTable = setInterval(function() {
+    attempts++;
     
-    // Destroy existing table if present
-    if ($.fn.DataTable.isDataTable('#programsTable')) {
-      console.log('[PROGRAMS] Destroying existing DataTable...');
-      $('#programsTable').DataTable().destroy();
+    if (window.programsTableInstance || ($.fn.DataTable && $.fn.DataTable.isDataTable('#programsTable'))) {
+      clearInterval(waitForDataTable);
+      const table = window.programsTableInstance || $('#programsTable').DataTable();
+      window.programsTableInstance = table;
+      console.log('[PROGRAMS] ✅ DataTable ready - attaching column filters');
+
+      // Column filter handlers update filter state only
+      $('#programFilterSection input[data-column="0"]').on('keyup change', function() {
+        window.programColumnFilters.code = this.value;
+      });
+      $('#programFilterSection input[data-column="1"]').on('keyup change', function() {
+        window.programColumnFilters.name = this.value;
+      });
+      // Replace college code input with select? if select exists, handle change
+      $('#programFilterSection select[data-column="2"]').on('change', function() {
+        window.programColumnFilters.college = this.value;
+      });
+
+      // Apply filters button
+      $('#applyProgramFilters').on('click', function(e) {
+        e.preventDefault();
+        console.log('[PROGRAMS] Apply Filters clicked, filters:', window.programColumnFilters);
+        table.ajax.reload();
+      });
+
+      // Toggle filters
+      $('#toggleProgramFilters').on('click', function(e) {
+        e.preventDefault();
+        $('#programFilterSection').slideToggle(200);
+      });
+
+      // Clear filters
+      $('#clearProgramFilters').on('click', function(e) {
+        e.preventDefault();
+        $('#programFilterSection input').val('');
+        $('#programFilterSection select').prop('selectedIndex', 0);
+        window.programColumnFilters = { code: '', name: '', college: '' };
+        table.ajax.reload();
+      });
+
+      console.log('[PROGRAMS] ✅ Filters attached');
+
+    } else if (attempts >= maxAttempts) {
+      clearInterval(waitForDataTable);
+      console.error('[PROGRAMS] ❌ Timeout waiting for DataTable');
     }
-    
-    // Initialize DataTable fresh
-    console.log('[PROGRAMS] Initializing DataTable...');
-    const table = $('#programsTable').DataTable({
-      responsive: true,
-      pageLength: 25,
-      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-      order: [[0, 'asc']],
-      columnDefs: [
-        { orderable: false, targets: -1 }
-      ],
-      processing: false,
-      serverSide: false,
-      ajax: undefined,
-      deferRender: true
-    });
-    console.log('[PROGRAMS] DataTable initialized successfully');
-    
-    // Column filtering
-    const filterInputs = $('#programFilterSection input, #programFilterSection select');
-    console.log('[PROGRAMS] Found filter inputs:', filterInputs.length);
-    
-    filterInputs.on('keyup change', function() {
-      const columnIndex = $(this).data('column');
-      const value = this.value;
-      
-      console.log('[PROGRAMS] *** FILTER APPLIED *** Column:', columnIndex, 'Value:', value);
-      
-      table.column(columnIndex).search(value).draw();
-      
-      console.log('[PROGRAMS] Table redrawn with filter');
-    });
-    
-    // Toggle filters
-    const toggleBtn = $('#toggleProgramFilters');
-    console.log('[PROGRAMS] Toggle button found:', toggleBtn.length);
-    
-    toggleBtn.on('click', function(e) {
-      e.preventDefault();
-      console.log('[PROGRAMS] *** TOGGLE CLICKED ***');
-      const filterSection = $('#programFilterSection');
-      const isVisible = filterSection.is(':visible');
-      console.log('[PROGRAMS] Current visibility:', isVisible);
-      
-      filterSection.slideToggle(200);
-      $(this).toggleClass('active');
-      
-      console.log('[PROGRAMS] Filter section toggled');
-    });
-    
-    // Clear all filters
-    const clearBtn = $('#clearProgramFilters');
-    console.log('[PROGRAMS] Clear button found:', clearBtn.length);
-    
-    clearBtn.on('click', function(e) {
-      e.preventDefault();
-      console.log('[PROGRAMS] *** CLEAR FILTERS CLICKED ***');
-      $('#programFilterSection input').val('');
-      $('#programFilterSection select').prop('selectedIndex', 0);
-      table.columns().search('').draw();
-      console.log('[PROGRAMS] All filters cleared and table redrawn');
-    });
-    
-    console.log('[PROGRAMS] All event handlers bound');
-  });
+  }, 100);
+});
 </script>
 {% endblock %}
 

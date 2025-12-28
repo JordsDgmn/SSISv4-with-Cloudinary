@@ -4,9 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "2.3.3"
+flask = "*"
 psycopg2-binary = "*"
-flask-sqlalchemy = "*"
 python-dotenv = "*"
 flask-paginate = "*"
 cloudinary = "*"

@@ -40,42 +40,391 @@ const SSISApp = {
 
   // Initialize DataTables for all pages
   initDataTables() {
-    // Students table
+    // Students table - SERVER-SIDE (backend handles filtering/sorting for scalability)
     if (document.getElementById('studentsTable')) {
-      $('#studentsTable').DataTable({
-        ...this.config.dataTableConfig,
-        order: [[0, 'asc']], // Sort by Student ID
+      console.log('[STUDENTS] Initializing server-side DataTable...');
+      
+      // Store column filter values (will be sent to backend)
+      window.studentColumnFilters = {
+        studentId: '',
+        name: '',
+        program: '',
+        year: '',
+        gender: ''
+      };
+      
+      const studentsTable = $('#studentsTable').DataTable({
+        serverSide: true,
+        processing: true,
+        pageLength: 25,
+        ajax: {
+          url: '/students/data',
+          type: 'POST',
+          contentType: 'application/json',
+          data: function(d) {
+            // Add custom column filters to request
+            d.columnFilters = window.studentColumnFilters;
+            console.log('[STUDENTS] AJAX Request with filters:', d);
+            return JSON.stringify(d);
+          },
+          dataSrc: function(json) {
+            console.log('[STUDENTS] AJAX Response:', json);
+            if (!json) {
+              console.error('[STUDENTS] Empty response from server');
+              SSISApp.showError('Empty response from server when loading students.');
+              return [];
+            }
+            if (json.error) {
+              console.error('[STUDENTS] Server error:', json.error);
+              SSISApp.showError('Server error: ' + json.error);
+              return [];
+            }
+            if (json.warnings && json.warnings.length) {
+              console.warn('[STUDENTS] Warnings from server:', json.warnings);
+              SSISApp.showWarning('Warnings: ' + json.warnings.join('; '));
+            }
+            return json.data || [];
+          },
+          beforeSend: function() {
+            // Disable Apply filters button while request is in flight
+            $('#applyFilters').prop('disabled', true).addClass('disabled');
+            $('#applyFilters').append(' <span id="applySpinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+          },
+          complete: function() {
+            // Re-enable Apply filters button
+            $('#applyFilters').prop('disabled', false).removeClass('disabled');
+            $('#applySpinner').remove();
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('[STUDENTS] AJAX ERROR:', textStatus, errorThrown, jqXHR.responseText);
+            SSISApp.showError('AJAX error loading students: ' + textStatus + ' ' + errorThrown);
+            const debugDiv = document.getElementById('debug-log') || document.createElement('div');
+            debugDiv.id = 'debug-log';
+            debugDiv.style.cssText = 'position: fixed; bottom: 0; right: 0; background: #f00; color: #fff; font-family: monospace; font-size: 12px; padding: 15px; max-height: 300px; overflow-y: auto; max-width: 600px; border: 2px solid #f00; z-index: 9999;';
+            debugDiv.innerHTML = '<strong style="color: yellow;">🚨 AJAX ERROR:</strong><br>' + 
+              'Status: ' + textStatus + '<br>' +
+              'Error: ' + errorThrown + '<br>' +
+              'Code: ' + jqXHR.status + '<br>' +
+              'Response: ' + (jqXHR.responseText ? jqXHR.responseText.substring(0, 1000) : '');
+            if (!document.getElementById('debug-log')) document.body.appendChild(debugDiv);
+          }
+        },
         columnDefs: [
-          { orderable: false, targets: -1 }, // Actions column
-          { className: "text-center", targets: -1 }, // Center align Actions
-          { width: "150px", targets: -1 } // Fixed width for actions
-        ]
+          { 
+            targets: 0,
+            data: 'profile_pic',
+            orderable: false,
+            render: function(data) {
+              if (data) {
+                return `<div class="profile-pic-container"><img src="${data}" alt="Profile" class="profile-pic" style="width: 40px; height: 40px; border-radius: 50%;"></div>`;
+              }
+              return '<div class="profile-pic-container"><i class="bi bi-person profile-placeholder"></i></div>';
+            }
+          },
+          { targets: 1, data: 'id' },
+          { 
+            targets: 2, 
+            data: null,
+            render: function(data, type, row) {
+              return (row.firstname || '') + ' ' + (row.lastname || '');
+            }
+          },
+          { targets: 3, data: 'program_name', defaultContent: '<span class="text-muted">N/A</span>' },
+          { targets: 4, data: 'college_name', defaultContent: '<span class="text-muted">N/A</span>' },
+          { targets: 5, data: 'year' },
+          { targets: 6, data: 'gender' },
+          { 
+            targets: 7,
+            data: null,
+            orderable: false,
+            render: function(data, type, row) {
+              const isAuthenticated = document.querySelector('[data-user-authenticated]') !== null;
+              let buttons = `
+                <div class="btn-group" role="group">
+                  <a href="/students/view/${row.id}" class="btn btn-outline-info btn-sm" title="View Details">
+                    <i class="bi bi-eye"></i>
+                  </a>`;
+              
+              if (isAuthenticated) {
+                buttons += `
+                  <button type="button" class="btn btn-outline-primary btn-sm edit-student"
+                    data-student-id="${row.id}"
+                    data-student-firstname="${row.firstname}"
+                    data-student-lastname="${row.lastname}"
+                    data-student-program-id="${row.program_id || ''}"
+                    data-student-year="${row.year}"
+                    data-student-gender="${row.gender}"
+                    data-bs-toggle="modal" data-bs-target="#editStudentModal" title="Edit Student">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <a href="javascript:void(0)" class="btn btn-outline-danger btn-sm delete-student"
+                    data-student-id="${row.id}"
+                    data-student-firstname="${row.firstname}"
+                    data-student-lastname="${row.lastname}" title="Delete Student">
+                    <i class="bi bi-trash"></i>
+                  </a>`;
+              }
+              
+              buttons += `</div>`;
+              return buttons;
+            }
+          }
+        ],
+        order: [[1, 'asc']],
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search records...",
+          lengthMenu: "Show _MENU_ entries",
+          info: "Showing _START_ to _END_ of _TOTAL_ entries",
+          infoEmpty: "Showing 0 to 0 of 0 entries",
+          infoFiltered: "(filtered from _MAX_ total entries)",
+          zeroRecords: "No matching records found",
+          emptyTable: "No data available in table",
+          processing: "Loading..."
+        },
+        dom: '<"row mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+      });
+      
+      console.log('[STUDENTS] ✅ Server-side DataTable initialized');
+      
+      // Store reference globally for filter handlers
+      window.studentsTableInstance = studentsTable;
+
+      // Listen for xhr events to report server-side diagnostics
+      studentsTable.on('xhr', function(e, settings, json) {
+        console.log('[STUDENTS] XHR event, response:', json);
+        if (json && json.warnings) {
+          SSISApp.showWarning('Server warnings: ' + json.warnings.join('; '));
+        }
+        if (json && json.error) {
+          SSISApp.showError('Server error: ' + json.error);
+        }
+
+        // If filters were set but server didn't reduce the result set, warn user
+        const filters = window.studentColumnFilters || {};
+        const anyFilterSet = Object.values(filters).some(v => v !== null && String(v).trim() !== '');
+        if (json && anyFilterSet && json.recordsFiltered === json.recordsTotal) {
+          console.warn('[STUDENTS] Filters were applied but server returned unfiltered results');
+          SSISApp.showWarning('Filters applied but server returned unfiltered results — check server logs/debug.');
+          if (json.debug) {
+            console.log('[STUDENTS] Server debug:', json.debug);
+            // Show short debug message in UI for development
+            SSISApp.showToast('Server debug: where=' + (json.debug.where_clause || 'none'), 'info');
+          }
+        }
+
+        // If zero records after filtering, show info for user
+        if (json && (json.recordsFiltered === 0)) {
+          SSISApp.showToast('No matching records found for current filters.', 'info');
+        }
       });
     }
 
-    // Programs table
+    // Programs table - SERVER-SIDE PROCESSING
     if (document.getElementById('programsTable')) {
-      $('#programsTable').DataTable({
-        ...this.config.dataTableConfig,
-        order: [[0, 'asc']], // Sort by Program Code
-        columnDefs: [
-          { orderable: false, targets: -1 }, // Actions column
-          { className: "text-center", targets: -1 }, // Center align actions
-          { width: "150px", targets: -1 } // Fixed width for actions
-        ]
+      const programsTable = $('#programsTable').DataTable({
+        serverSide: true,
+        processing: true,
+        ajax: {
+          url: '/programs/data',
+          type: 'POST',
+          contentType: 'application/json',
+          data: function(d) {
+            // attach column filters
+            d.columnFilters = window.programColumnFilters || {};
+            console.log('[DataTables AJAX REQUEST] /programs/data:', d);
+            return JSON.stringify(d);
+          },
+          dataSrc: function(json) {
+            console.log('[DataTables AJAX RESPONSE] /programs/data:', json);
+            if (!json) {
+              console.error('[ERROR] Empty response!', json);
+              SSISApp.showError('Empty response from server when loading programs.');
+              return [];
+            }
+            if (json.error) {
+              console.error('[ERROR] Server error:', json.error);
+              SSISApp.showError('Server error: ' + json.error);
+              return [];
+            }
+            if (json.warnings && json.warnings.length) {
+              console.warn('[WARN] Server warnings:', json.warnings);
+              SSISApp.showWarning('Warnings: ' + json.warnings.join('; '));
+            }
+
+            // Heuristic: If filters were set but server returned unfiltered results, warn the user and show server debug if available
+            const filters = window.programColumnFilters || {};
+            const anyFilterSet = Object.values(filters).some(v => v !== null && String(v).trim() !== '');
+            if (json && anyFilterSet && json.recordsFiltered === json.recordsTotal) {
+              console.warn('[PROGRAMS] Filters were applied but server returned unfiltered results');
+              SSISApp.showWarning('Filters applied but server returned unfiltered results — check server logs/debug.');
+              if (json.debug) {
+                console.log('[PROGRAMS] Server debug:', json.debug);
+                SSISApp.showToast('Server debug: where=' + (json.debug.where_clause || 'none'), 'info');
+              }
+            }
+
+            return json.data || [];
+          },
+          error: function(xhr, error, thrown) {
+            console.error('[DataTables AJAX ERROR] /programs/data:', error, thrown);
+            console.error('[ERROR RESPONSE]:', xhr.responseText);
+            SSISApp.showError('Error loading program data: ' + xhr.status + ' ' + thrown);
+          }
+        }, 
+        columns: [
+          { data: 'code' },
+          { data: 'name' },
+          { 
+            data: 'college_name',
+            render: function(data, type, row) {
+              return data || '<span class="text-muted">No College</span>';
+            }
+          },
+          { 
+            data: null,
+            orderable: false,
+            render: function(data, type, row) {
+              const isAuthenticated = document.querySelector('[data-user-authenticated]') !== null;
+              let buttons = `
+                <div class="btn-group" role="group">
+                  <a href="/programs/view/${row.program_id}" class="btn btn-outline-info btn-sm" title="View Programs">
+                    <i class="bi bi-eye"></i>
+                  </a>`;
+              
+              if (isAuthenticated) {
+                buttons += `
+                  <button type="button" class="btn btn-outline-primary btn-sm edit-program"
+                    data-program-id="${row.program_id}"
+                    data-program-code="${row.code}"
+                    data-program-name="${row.name}"
+                    data-college-id="${row.college_id || ''}"
+                    data-bs-toggle="modal" data-bs-target="#editProgramModal" title="Edit Program">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <a href="javascript:void(0)" class="btn btn-outline-danger btn-sm delete-program"
+                    data-program-id="${row.program_id}"
+                    data-program-code="${row.code}"
+                    data-program-name="${row.name}" title="Delete Program">
+                    <i class="bi bi-trash"></i>
+                  </a>`;
+              }
+              
+              buttons += '</div>';
+              return buttons;
+            }
+          }
+        ],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search programs...",
+          lengthMenu: "Show _MENU_ entries",
+          info: "Showing _START_ to _END_ of _TOTAL_ programs",
+          infoEmpty: "Showing 0 to 0 of 0 programs",
+          infoFiltered: "(filtered from _MAX_ total programs)",
+          zeroRecords: "No matching programs found",
+          emptyTable: "No programs available",
+          processing: "Loading programs..."
+        },
+        dom: '<"row mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+        order: [[0, 'asc']]
       });
     }
 
-    // Colleges table
+    // Colleges table - SERVER-SIDE PROCESSING
     if (document.getElementById('collegesTable')) {
       $('#collegesTable').DataTable({
-        ...this.config.dataTableConfig,
-        order: [[0, 'asc']], // Sort by College Code
-        columnDefs: [
-          { orderable: false, targets: -1 }, // Actions column
-          { className: "text-center", targets: -1 }, // Center align actions
-          { width: "150px", targets: -1 } // Fixed width for actions
-        ]
+        serverSide: true,
+        processing: true,
+        ajax: {
+          url: '/colleges/data',
+          type: 'POST',
+          contentType: 'application/json',
+          data: function(d) {
+            d.columnFilters = window.collegeColumnFilters || {};
+            console.log('[DataTables AJAX REQUEST] /colleges/data:', d);
+            return JSON.stringify(d);
+          },
+          dataSrc: function(json) {
+            console.log('[DataTables AJAX RESPONSE] /colleges/data:', json);
+            if (!json || !json.data) {
+              console.error('[ERROR] Response missing data property!', json);
+              return [];
+            }
+
+            // Heuristic: warn if filters were set in the UI but server returned unfiltered results
+            const filters = window.collegeColumnFilters || {};
+            const anyFilterSet = Object.values(filters).some(v => v !== null && String(v).trim() !== '');
+            if (json && anyFilterSet && json.recordsFiltered === json.recordsTotal) {
+              console.warn('[COLLEGES] Filters were applied but server returned unfiltered results');
+              SSISApp.showWarning('Filters applied but server returned unfiltered results — check server logs/debug.');
+              if (json.debug) {
+                console.log('[COLLEGES] Server debug:', json.debug);
+                SSISApp.showToast('Server debug: where=' + (json.debug.where_clause || 'none'), 'info');
+              }
+            }
+
+            return json.data;  // Return ONLY the data array
+          },
+          error: function(xhr, error, thrown) {
+            console.error('[DataTables AJAX ERROR] /colleges/data:', error, thrown);
+            console.error('[ERROR RESPONSE]:', xhr.responseText);
+            alert('Error loading college data: ' + xhr.status + ' ' + thrown);
+          }
+        },
+        columns: [
+          { data: 'code' },
+          { data: 'name' },
+          { 
+            data: null,
+            orderable: false,
+            render: function(data, type, row) {
+              const isAuthenticated = document.querySelector('[data-user-authenticated]') !== null;
+              let buttons = `
+                <div class="btn-group" role="group">
+                  <a href="/colleges/view/${row.code}" class="btn btn-outline-info btn-sm" title="View College">
+                    <i class="bi bi-eye"></i>
+                  </a>`;
+              
+              if (isAuthenticated) {
+                buttons += `
+                  <button type="button" class="btn btn-outline-primary btn-sm edit-college"
+                    data-college-id="${row.college_id}"
+                    data-college-code="${row.code}"
+                    data-college-name="${row.name}"
+                    data-bs-toggle="modal" data-bs-target="#editCollegeModal" title="Edit College">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <a href="javascript:void(0)" class="btn btn-outline-danger btn-sm delete-college"
+                    data-college-id="${row.college_id}"
+                    data-college-code="${row.code}"
+                    data-college-name="${row.name}" title="Delete College">
+                    <i class="bi bi-trash"></i>
+                  </a>`;
+              }
+              
+              buttons += '</div>';
+              return buttons;
+            }
+          }
+        ],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search colleges...",
+          lengthMenu: "Show _MENU_ entries",
+          info: "Showing _START_ to _END_ of _TOTAL_ colleges",
+          infoEmpty: "Showing 0 to 0 of 0 colleges",
+          infoFiltered: "(filtered from _MAX_ total colleges)",
+          zeroRecords: "No matching colleges found",
+          emptyTable: "No colleges available",
+          processing: "Loading colleges..."
+        },
+        dom: '<"row mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+        order: [[0, 'asc']]
       });
     }
   },
@@ -563,6 +912,16 @@ const SSISApp = {
     } else {
       location.reload();
     }
+  },
+
+  showError(message) {
+    console.error('[SSISApp] ERROR:', message);
+    this.showToast(message, 'error');
+  },
+
+  showWarning(message) {
+    console.warn('[SSISApp] WARNING:', message);
+    this.showToast(message, 'info');
   },
 
   showToast(message, type = 'info') {

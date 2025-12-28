@@ -1,5 +1,6 @@
+# === CRASH TRACEPOINT: website/__init__.py top ===
+print("=== TRACEPOINT: website/__init__.py module loaded ===")
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
 from config import Config
@@ -9,9 +10,6 @@ import cloudinary.api
 from datetime import timedelta
 
 load_dotenv()
-
-# Create the SQLAlchemy instance outside the Flask app
-db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
@@ -23,15 +21,17 @@ def create_app():
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
-    # Configure Cloudinary
+    # Configure Cloudinary with defensive logging
+    print("[Cloudinary Config] cloud_name:", Config.CLOUDINARY_CLOUD_NAME)
+    print("[Cloudinary Config] api_key:", Config.CLOUDINARY_API_KEY)
+    print("[Cloudinary Config] api_secret:", '(hidden)' if Config.CLOUDINARY_API_SECRET else None)
+    if not (Config.CLOUDINARY_CLOUD_NAME and Config.CLOUDINARY_API_KEY and Config.CLOUDINARY_API_SECRET):
+        print("[ERROR] Cloudinary configuration is missing! Check your .env file and environment variables.")
     cloudinary.config(
         cloud_name=Config.CLOUDINARY_CLOUD_NAME,
         api_key=Config.CLOUDINARY_API_KEY,
         api_secret=Config.CLOUDINARY_API_SECRET
     )
-
-    # Initialize the SQLAlchemy extension
-    db.init_app(app)
 
     # Import and register blueprints here
     from website.routes.authRoute import authRoute
